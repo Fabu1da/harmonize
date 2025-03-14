@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "properties": {
+    "Description": { "type": "string" },
+    "VehicleID": { "type": "string" },
+    "Mileage": { "type": "integer" },
+    "OperationNumber": { "type": "integer" },
+    "OwnerOfTheVehicle": { "type": "string" },
+    "FirstRegistrationDate": { "type": "string" }
+  }
+}

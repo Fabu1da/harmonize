@@ -1,0 +1,28 @@
+{
+  "type": "object",
+  "properties": {
+    "title": { "type": "string" },
+    "release_date": { "type": "datetime" },
+    "type": { "type": "string" },
+    "director": { "type": "string" },
+    "cast": { "type": "string" },
+    "runtime_seconds": { "type": "integer" },
+    "language": { "type": "string" },
+    "country": { "type": "string" },
+    "budget": { "type": "number" },
+    "box_office": { "type": "number" },
+    "rating": { "type": "number" },
+    "votes": { "type": "integer" },
+    "mpaa_rating": { "type": "string" },
+    "description": { "type": "string" },
+    "poster_url": { "type": "string" },
+    "franchise": { "type": "string" },
+    "sequel": { "type": "boolean" },
+    "production_company": { "type": "string" },
+    "awards_won": { "type": "integer" },
+    "awards_nominated": { "type": "integer" },
+    "user_reviews_count": { "type": "integer" },
+    "critic_reviews_count": { "type": "integer" },
+    "streaming_platform": { "type": "string" }
+  }
+}

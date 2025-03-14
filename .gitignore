@@ -1,0 +1,125 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environment
+.venv/
+venv/
+env/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+.pyre/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# pyenv
+.python-version
+
+# Pipenv
+Pipfile
+Pipfile.lock
+
+# PDM
+__pypackages__/
+
+# celery
+celerybeat-schedule
+*.pid
+
+# mypy
+.mypy_cache/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-workspace
+
+# Logs and debug
+logs/
+*.log
+debug.log
+*.out
+*.err
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Local configuration files
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+*.ini
+*.cfg
+
+# Database
+*.sqlite3
+*.db
+
+# MacOS system files
+.DS_Store
+*.AppleDouble
+.LSOverride
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+llama.py
+debug.*
+data_*
+* copy.py
+schema_*
+models
+Jupyter_*
+extracted_*

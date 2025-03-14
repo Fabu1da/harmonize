@@ -1,0 +1,6 @@
+
+STEP 1:
+ 1. CHANGE INFER_RULES -> either to use gpt to determine the data type
+
+STEP 2  
+ 2. system, (example user, example assistant (function call))*, user -> assistant (function call)
