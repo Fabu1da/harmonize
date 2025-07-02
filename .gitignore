@@ -115,11 +115,13 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
-llama.py
-debug.*
-data_*
-* copy.py
-schema_*
-models
-Jupyter_*
-extracted_*
+assets
+output
+debug.json
+embedding_cache.json
+todo.txt
+Jupyter_env
+*.jpg
+*.csv
+*.iwa
+dump

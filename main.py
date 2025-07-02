@@ -1,212 +1,611 @@
+#!/usr/bin/env python
+import dotenv
+dotenv.load_dotenv(override=True)
+
 import argparse
 import asyncio
-import json
-import pandas as pd
-import logging
-import random
-import numpy as np
-import openai
 from functools import partial
-from typing import Any, Callable
+from collections.abc import Callable
+import json
+from typing import Any, Optional
 import logging
+import glob
+from pathlib import Path
+import os
+from tabulate import tabulate
 
-# Configure logging
-logging.basicConfig(filename="harmonization.log", level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+import pandas as pd
+from tqdm import tqdm
+import matplotlib.pyplot as plt
 
-# File paths
-INPUT_FILE = "./files/vehiclesRawData.csv"
-OUTPUT_FILE = "standardized_data.csv"
-TARGET_SCHEMA_FILE = "./files/target/target_schema.json"
+from gpt_utils import gpt_column_mapping
+from json_schema import ObjectSchema
+from schema_inference import infer_schema
+from synthetic_data import apply_perturbations, score_mapping
+from embedding_utils import embedding_column_mapping
+from clustering_matcher import clustering_matcher 
 
-# 🔍 **Step 1: Infer Schema from Source Dataset**
-async def infer_schema(dataset: pd.DataFrame):
-    schema = {}
 
-    for column in dataset.columns:
-        non_null_values = dataset[column].dropna()  # Remove null values
 
-        # Determine Python native datatype
-        inferred_type = type(non_null_values.iloc[0]) if not non_null_values.empty else str
-
-        # Convert NumPy types to standard Python types
-        type_mapping = {
-            np.int64: int,
-            np.float64: float,
-            np.bool_: bool,
-            np.str_: str
-        }
-        inferred_type = type_mapping.get(inferred_type, inferred_type)
-
-        schema[column] = {
-            "type": inferred_type.__name__,
-            "nullable": bool(dataset[column].isnull().sum() > 0),
-            "example": random.choice(non_null_values.tolist()) if not non_null_values.empty else None,
-        }
-    
-    return schema  
-
-# 🔍 **Step 2: Parse Target Schema**
-def parse_schema(schema_file):
-    with open(schema_file, 'r') as f:
-        schema = json.load(f)
-
-    mapping = {
-        "string": "str",
-        "integer": "int",
-        "number": "float",
-        "boolean": "bool",
-        "datetime": "str",
+async def infer_rules(column_map, target_schema: ObjectSchema) -> dict[str, Callable[[dict], Any]]:
+    # Ensure column_map contains only strings
+    column_map = {
+        target: source
+        for target, source in column_map.items()
     }
 
-    if "properties" not in schema:
-        raise ValueError("Invalid target schema: missing 'properties' key")
+    print("🔍 Processed column_map:", column_map)  # Debugging output
 
-    schema_properties = schema["properties"]
+    def rule(data: dict, target_column: str) -> Any:
+        """
+        Transformation rule: Maps a source column to a target column and applies conversion.
+        """
+        source_column = column_map.get(target_column)
+        if not source_column:
+            return None  # No source column mapped
 
+        value = data.get(source_column, None)  # Fetch source data
+        if value is None:
+            return None  # No value found
+
+        try:
+            # Convert value to target schema's expected type
+            jsontype = target_schema.properties[target_column].type
+            datatype = {
+                "string": str,
+                "number": float,
+                "integer": int,
+                "boolean": bool,
+            }.get(jsontype, str)
+            value = datatype(value)
+        except ValueError as e:
+            logging.error(f" Value conversion error for column {target_column}: {e}")
+            value = None  # Handle conversion errors gracefully
+
+        return value
+
+    #  Return transformation rules dictionary
     return {
-        column: {
-            "type": mapping.get(value.get("type", "string"), "str"),
-            "nullable": False,
-            "example": None
-        }
-        for column, value in schema_properties.items()
+        column: partial(rule, target_column=column)
+        for column in target_schema.properties.keys()
     }
 
-# 🔍 **Step 3: Infer Mapping Rules with GPT**
-async def gpt_column_mapping(source_schema: dict, target_schema: dict) -> dict[str, str]:
-    print("🔄 Mapping columns...")
-
-    system_message = (
-        "You are an expert in schema matching and data integration. Your task is to match columns from a given source schema "
-        "to the most semantically similar columns in a target schema. Use both lexical similarity (string similarity) and semantic understanding. "
-        "Provide a JSON object where each target column is mapped to its most relevant source column.\n"
-    )
-
-    user_message = (
-        f"### Source Schema:\n{json.dumps(source_schema, indent=2)}\n\n"
-        f"### Target Schema:\n{json.dumps(target_schema, indent=2)}\n\n"
-    )
-
-    try:
-        response =  openai.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": user_message}
-            ],
-            functions=[
-                {
-                    "name": "map_schema",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "mappings": {
-                                "type": "array",
-                                "items": {
-                                    "type": "object",
-                                    "properties": {
-                                        "target_column": {"type": "string"},
-                                        "source_column": {"type": "string"},
-                                    },
-                                    "required": ["target_column", "source_column"],
-                                }
-                            }
-                        },
-                        "required": ["mappings"]
-                    }
-                }
-            ],
-            function_call={"name": "map_schema"},
-            temperature=0,
-        )
-
-        print("GPT Response:", response)  # Debugging output
-
-        if response.choices and response.choices[0].message.function_call:
-            content = response.choices[0].message.function_call.arguments
-            mappings = json.loads(content).get("mappings", [])
-
-            return {item["target_column"]: item["source_column"] for item in mappings}
-        
-    except Exception as e:
-        logging.error(f"Error during GPT request: {e}")
-
-    return {target_column: None for target_column in target_schema}
-
-# 🔍 **Step 4: Apply Rules**
-def apply_rules(dataset: pd.DataFrame, rules: dict[str, Callable[[dict], Any]], target_schema: dict) -> pd.DataFrame:
+# TODO: improve runtime complexity from O(R*C) to O(C)
+def apply_rules(dataset: pd.DataFrame, rules: dict[str, Callable[[dict], Any]]) -> pd.DataFrame:
     columns = rules.keys()
     dataset2 = pd.DataFrame(columns=columns)
-
-    type_mapping = {
-        "string": str,
-        "str": str,
-        "integer": int,
-        "int": int,
-        "number": float,
-        "float": float,
-        "boolean": bool,
-        "bool": bool,
-        "datetime": str,
-    }
-
     for row in dataset.itertuples():
         index = row.Index
         data = row._asdict()
-        row_values = {}
-
         for column, rule in rules.items():
             value = rule(data)
-            if value is None:
-                dataset2.loc[index, column] = None
-                row_values[column] = None
-                continue
-
-            try:
-                expected_type = target_schema.get(column, {}).get("type", "str")
-
-                if expected_type in ["int", "integer"] and isinstance(value, (int, float)) or (isinstance(value, str) and value.isdigit()):
-                    value = int(value)
-                elif expected_type in ["float", "number"]:
-                    value = float(value)
-                elif expected_type in ["boolean", "bool"]:
-                    value = bool(value)
-
-                dataset2.loc[index, column] = value
-                row_values[column] = value  # Store processed row values
-
-            except (ValueError, TypeError) as e:
-                logging.error(f"❌ Value conversion error for column {column} at row {index}: {e}")
-                dataset2.loc[index, column] = None
-                row_values[column] = None
-
-        # Log row processing
-        logging.info(f"✅ Row {index} added to standardized dataset: {row_values}")
-
+            dataset2.loc[index, column] = value
     return dataset2
 
-# 🚀 **Main Execution**
-async def main(args):
-    dataset = pd.read_csv(args.input_file)
-    target_schema = parse_schema(args.target_schema_file)
-    schema = await infer_schema(dataset)
-    column_map = await gpt_column_mapping(schema, target_schema)
-    
-    print(column_map)
+async def main(args: argparse.ArgumentParser):
+    os.chdir(os.path.dirname(__file__))
+    # await main_all_expected(args)
+    await main_test(args)
+    # await main_synthetic(args)
 
-    rules = {
-        col: partial(lambda data, target_col=col: data.get(column_map.get(target_col, None), None), target_col=col)
-        for col in target_schema
-    }
+
+
+def show_mapping_with_examples(predicted_mapping: dict, source_data: pd.DataFrame, num_examples: int = 1):
+    table = []
+
+    for target, (src, conf) in predicted_mapping.items():
+        if src and src in source_data.columns:
+            examples = source_data[src].dropna().astype(str).unique()[:num_examples]
+            example_val = ", ".join(examples) if examples.any() else "—"
+        else:
+            example_val = "—"
+        
+        table.append([target, src if src else "—", f"{conf:.2f}", example_val])
+
+    print(tabulate(table, headers=["Target Column", "Predicted Source", "Confidence", "Example"], tablefmt="fancy_grid"))
+
+
+
+# async def main_test(args: argparse.Namespace):
+#     source_table = "Cricket"
+#     results = []
+
+#     for target_path in tqdm(sorted(glob.glob("**/*.json", root_dir="./assets/target", recursive=True))):
+#         print(flush=True)
+#         target_table, _ = os.path.splitext(target_path)
+#         # await main_core(source_table, target_table, seed=args.seed, output_name=args.output_name)
+#         predicted_mapping, score, weight = await main_core(
+#             source_table,
+#             target_table,
+#             seed=args.seed,
+#             output_name=args.output_name
+#         )
+        
+#         show_mapping_with_examples(predicted_mapping, pd.read_csv(f"./assets/source/{source_table}.csv"))
+
+#         results.append([
+#             source_table,
+#             target_table,
+#             f"{score[0]:.2f}" if score else "—",
+#             weight if weight is not None else "—"
+#         ])
+
+#     # Print result summary table
+#     print("\n📊 Harmonization Summary Table")
+#     print(tabulate(
+#         results,
+#         headers=["Source Table", "Target Table", "Score", "Weight"],
+#         tablefmt="fancy_grid"
+#     ))
+
+
+
+def export_table_as_image(data, headers, filename):
+    df = pd.DataFrame(data, columns=headers)
+
+    fig, ax = plt.subplots(figsize=(len(headers) * 2, len(data) * 0.6 + 1))
+    ax.axis('tight')
+    ax.axis('off')
+    table = ax.table(cellText=df.values, colLabels=df.columns, cellLoc='center', loc='center')
+    table.auto_set_font_size(False)
+    table.set_fontsize(10)
+    table.scale(1, 1.5)
+
+    os.makedirs("output", exist_ok=True)
+    filepath = os.path.join("output", filename)
+    plt.tight_layout()
+    plt.savefig(filepath, dpi=300)
+    plt.close(fig)
+    print(f"✅ Table saved to {filepath}")
+
+
+
+async def main_test(args: argparse.Namespace):
+    results = []
+    detailed_matches = []
+
+    # Iterate over all source CSV files
+    for source_csv_path in sorted(glob.glob("./assets/source/*.csv")):
+        print("->", source_csv_path)
+        source_table = Path(source_csv_path).stem
+        source_path = f"./assets/source/{source_table}.csv"
+        source_data = pd.read_csv(source_path)
+        source_schema_path = f"./assets/source/{source_table}.json"
+
+        # Load or infer source schema
+        if os.path.exists(source_schema_path):
+            with open(source_schema_path) as f:
+                source_schema = ObjectSchema.model_validate_json(f.read())
+        else:
+            source_schema = await infer_schema(source_data)
+
+        # Iterate over all target JSON schemas
+        for target_path in tqdm(sorted(glob.glob("./assets/target/*.json", recursive=True))):
+            target_table, _ = os.path.splitext(os.path.basename(target_path))
+
+            with open(target_path) as f:
+                target_schema = ObjectSchema.model_validate_json(f.read())
+
+            predicted_mapping, score, weight = await main_core(
+                source_table,
+                target_table,
+                seed=args.seed,
+                output_name=args.output_name
+            )
+
+            # Show mapping with examples
+            show_mapping_with_examples(predicted_mapping, source_data)
+
+            # Matchers
+            embed_predicted = embedding_column_mapping(
+                source_columns=list(source_schema.properties.keys()),
+                target_columns=list(target_schema.properties.keys()),
+                threshold=0
+            )
+            cluster_predicted = clustering_matcher(source_schema, target_schema)
+
+            print(f"\n📊 Matcher Comparison for {source_table} → {target_table}")
+            weights = {"gpt": 0.5, "embed": 0.3, "cluster": 0.2}
+            comparison_table = []
+            headers = [
+                "Target",
+                "GPT Match", "GPT Score",
+                "Embed Match", "Embed Score",
+                "Cluster Match", "Cluster Score",
+                "Avg Score", "Weighted Score",
+                "Potential Match", "Suggested Match"
+            ]
+
+            for col in target_schema.properties.keys():
+                gpt_match, gpt_score = predicted_mapping.get(col, ("—", 0.0))
+                emb_match, emb_score = embed_predicted.get(col, ("—", 0.0))
+                cluster_match, cluster_score = cluster_predicted.get(col, ("—", 0.0))
+
+                gpt_score = float(gpt_score or 0.0)
+                emb_score = float(emb_score or 0.0)
+                cluster_score = float(cluster_score or 0.0)
+
+                avg_score = round((gpt_score + emb_score + cluster_score) / 3, 2)
+                weighted_score = round(
+                    gpt_score * weights["gpt"] +
+                    emb_score * weights["embed"] +
+                    cluster_score * weights["cluster"], 2
+                )
+                high_potential = "✅" if weighted_score >= 0.5 else "—"
+
+                # Suggested best prediction(s)
+                suggested = "—"
+                if avg_score >= 0.5:
+                    preds = {
+                        gpt_match: gpt_score,
+                        emb_match: emb_score,
+                        cluster_match: cluster_score
+                    }
+                    max_score = max(preds.values())
+                    best = [k for k, v in preds.items() if v == max_score and k not in ("—", None)]
+                    suggested = " / ".join(sorted(set(best))) if best else "—"
+
+                comparison_table.append([
+                    col,
+                    gpt_match, f"{gpt_score:.2f}",
+                    emb_match, f"{emb_score:.2f}",
+                    cluster_match, f"{cluster_score:.2f}",
+                    f"{avg_score:.2f}",
+                    f"{weighted_score:.2f}",
+                    high_potential,
+                    suggested
+                ])
+
+                # Add detailed match info for each matcher
+                for matcher_name, match, sim in [
+                    ("gpt", gpt_match, gpt_score),
+                    ("embed", emb_match, emb_score),
+                    ("cluster", cluster_match, cluster_score)
+                ]:
+                    if match not in ("—", None):
+                        detailed_matches.append({
+                            "source": f"Users_fabu1da_Desktop_schoolstuff_mastersThesis_Project_hamonize_assets_source_{source_table}.{match}",
+                            "target": f"Users_fabu1da_Desktop_schoolstuff_mastersThesis_Project_hamonize_assets_target_{target_table}.{col}",
+                            "similarity": round(sim, 4),
+                            "src_file": f"{source_table}.csv",
+                            "trg_file": f"{target_table}.csv",
+                            "matcher": matcher_name
+                        })
+
+            print(tabulate(comparison_table, headers=headers, tablefmt="fancy_grid"))
+            export_table_as_image(comparison_table, headers, f"Comparison_{source_table}_to_{target_table}.png")
+
+            # Score summary row
+            score_val = score[0] if score and isinstance(score, tuple) else None
+            score_display = f"{score_val:.2f}" if score_val is not None else "—"
+            weight_display = str(weight) if weight is not None else "—"
+
+            results.append([
+                source_table,
+                target_table,
+                score_display,
+                weight_display
+            ])
+
+    # Final summary table
+    print("\n📊 Harmonization Summary Table")
+    summary_headers = ["Source Table", "Target Table", "Score", "Weight"]
+    print(tabulate(results, headers=summary_headers, tablefmt="fancy_grid"))
+    export_table_as_image(results, summary_headers, "Harmonization_Summary.png")
+
+    # Export detailed matches as JSON
+    with open("output/detailed_matches.json", "w") as f:
+        json.dump(detailed_matches, f, indent=2)
+    print("✅ Detailed matcher results saved to output/detailed_matches.json")
+
     
-    standardized_dataset = apply_rules(dataset, rules, target_schema)
-    standardized_dataset.to_csv(args.output_file, index=False)
+
+
+
+async def main_all_expected(args: argparse.Namespace):
+    score_sum = 0
+    weight_sum = 0
+
+    for expected_path in tqdm(sorted(glob.glob("**/*.json", root_dir="./assets/expected", recursive=True))):
+        print(flush=True)
+        expected_name, _ = os.path.splitext(expected_path)
+
+        with open(f"./assets/expected/{expected_name}.json") as f:
+            expectation = json.load(f)
+
+        source_table = expectation["source_table"]
+        target_table = expectation["target_table"]
+        expected_mappings = expectation["mappings"]
+        expected_mapping = {
+            mapping["target_column"]: mapping["source_column"]
+            for mapping in expected_mappings
+        }
+
+        print(" ")
+        print("[INFO]", expected_name, source_table, target_table)
+        print("Expected Mapping:", expected_mapping)
+        
+        predicted_mapping, score, weight = await main_core(source_table, target_table, expected_mapping, seed=args.seed, output_name=args.output_name)
+        score_sum += score[0] * weight
+        weight_sum += weight
+
+    overall_score = score_sum / weight_sum
+    print("Overall Score", overall_score)
+
+
+async def main_synthetic(args: argparse.ArgumentParser):
+    score_sum = 0
+    weight_sum = 0
+
+    for target_path in tqdm(sorted(glob.glob("**/*.json", root_dir="./assets/target", recursive=True))):
+        print(flush=True)
+        target_table, _ = os.path.splitext(target_path)
+
+        with open(f"./assets/target/{target_table}.json", 'r') as f:
+            target_schema = ObjectSchema.model_validate_json(f.read())
+            # print("Target Schema:", target_schema.model_dump_json())
+        
+
+        source_schema, expected_mapping = await apply_perturbations(target_schema, seed=args.seed)
+        # print("Source Schema:", source_schema.model_dump_json())
+        # print("Expected Mapping:", expected_mapping)
+        
+        out_name = f"{target_table}__synthetic.json"
+        with open(f"./assets/expected/{out_name}", "w") as f:
+            json.dump({
+                "source_table": target_table + "_synthetic",
+                "target_table": target_table,
+                "synthetic": True,
+                "generated_with": f"main_synthetic('{target_table}')",
+                "mappings": [
+                    {"source_column": src, "target_column": tgt}
+                    for tgt, src in expected_mapping.items()
+                    if src is not None
+            ]
+        }, f, indent=2)
+        
+
+        predicted_mapping, score, weight = await main_core_inner(None, source_schema, target_schema, expected_mapping, seed=args.seed, output_name=args.output_name)
+        score_sum += score[0] * weight
+        weight_sum += weight
+
+    overall_score = score_sum / weight_sum
+    print("Overall Score", overall_score)
+
+
+async def main_core(source_table: str, target_table: str, expected_mapping: Optional[dict[str, Optional[str]]] = None, seed: Optional[int] = None, output_name: Optional[str] = None):
+    source_data = pd.read_csv(f"./assets/source/{source_table}.csv")
+    source_schema_path = f"./assets/source/{source_table}.json"
+    target_schema_path = f"./assets/target/{target_table}.json"
+
+    if os.path.exists(source_schema_path):
+        with open(source_schema_path) as f:
+            source_schema = ObjectSchema.model_validate_json(f.read())
+    else:
+        source_schema = await infer_schema(source_data)
+        print("Source Schema:", source_schema.model_dump_json())
+
+    with open(target_schema_path) as f:
+        target_schema = ObjectSchema.model_validate_json(f.read())
+
+    #expected_data = pd.read_csv(f"./assets/expected/{expected_name}.csv")
+
+    return await main_core_inner(source_data, source_schema, target_schema, expected_mapping, seed=seed, output_name=output_name)
+
+
+def compare_mappings(old_mapping, new_mapping):
+    """
+    Compares two dictionaries and identifies:
+    - Unchanged mappings
+    - Changed mappings
+    - Newly added mappings
+    - Removed mappings
+    """
+    unchanged = {}
+    changed = {}
+    added = {}
+    removed = {}
+
+    for key in old_mapping:
+        if key in new_mapping:
+            if old_mapping[key] == new_mapping[key]:
+                unchanged[key] = old_mapping[key]
+            else:
+                changed[key] = (old_mapping[key], new_mapping[key])
+        else:
+            removed[key] = old_mapping[key]
+
+    for key in new_mapping:
+        if key not in old_mapping:
+            added[key] = new_mapping[key]
+
+    return {"unchanged": unchanged, "changed": changed, "added": added, "removed": removed}
+
+
+
+async def main_core_inner(source_data: Optional[pd.DataFrame], source_schema: ObjectSchema, target_schema: ObjectSchema, expected_mapping: Optional[dict[str, Optional[str]]] = None, seed: Optional[int] = None, output_name: Optional[str] = None):
+    predicted_mapping = await gpt_column_mapping(source_schema, target_schema, seed=seed)
+    
+    embed_predicted = embedding_column_mapping(
+        source_columns=list(source_schema.properties.keys()),
+        target_columns=list(target_schema.properties.keys()),
+        threshold=0
+    )
+
+    cluster_predicted = clustering_matcher(source_schema, target_schema)
+    # gittables_predicted = gittables_matcher(list(target_schema.properties.keys()))  # <- GitTables matcher
+
+    if expected_mapping is None:
+        conf_sum = sum(conf for _, conf in predicted_mapping.values())
+        total = len(target_schema.properties)
+        fallback_score = conf_sum / total if total > 0 else 0.0
+        score = (fallback_score, {"note": "proxy score based on high-confidence matches"})
+        weight = total
+    else:
+        comparison_table = []
+        headers = [
+            "Target", "Expected",
+            "GPT Match", "GPT Score",
+            "Embed Match", "Embed Score",
+            "Cluster Match", "Cluster Score",
+            #"GitTables Match", "GitTables Score"
+        ]
+
+        for col in target_schema.properties.keys():
+            expected = expected_mapping.get(col, "—")
+
+
+            gpt_match, gpt_score = predicted_mapping.get(col, ("—", 0.0))
+            emb_match, emb_score = embed_predicted.get(col, ("—", 0.0))
+            cluster_match, cluster_score = cluster_predicted.get(col, ("—", 0.0))
+            #git_match, git_score = gittables_predicted.get(col, ("—", 0.0))
+
+            comparison_table.append([
+                col, expected,
+                gpt_match, f"{gpt_score:.2f}",
+                emb_match, f"{emb_score:.2f}",
+                cluster_match, f"{cluster_score:.2f}",
+                #git_match, f"{git_score:.2f}"
+            ])
+
+        print("\n📊 Combined Matcher Comparison (Including GitTables)")
+        print(tabulate(comparison_table, headers=headers, tablefmt="fancy_grid"))
+
+        score = score_mapping(predicted_mapping, expected_mapping)
+        weight = len(target_schema.properties.keys())
+        print("Score:", score)
+
+    if source_data is not None and output_name:
+        rules = await infer_rules(predicted_mapping, target_schema)
+        predicted_data = apply_rules(source_data, rules)
+        predicted_data.to_csv(output_name, index=False)
+
+    return predicted_mapping, score, weight
+
+
+# async def main_core_inner(source_data: Optional[pd.DataFrame], source_schema: ObjectSchema, target_schema: ObjectSchema, expected_mapping: Optional[dict[str, Optional[str]]] = None, seed: Optional[int] = None, output_name: Optional[str] = None):
+#     predicted_mapping = await gpt_column_mapping(source_schema, target_schema, seed=seed)
+#     # print("Predicted Mapping:", predicted_mapping)
+    
+#     embed_predicted = embedding_column_mapping(
+#         source_columns=list(source_schema.properties.keys()),
+#         target_columns=list(target_schema.properties.keys()),
+#         threshold=0
+#     )
+
+#     cluster_predicted = clustering_matcher(source_schema, target_schema)
+#     gittables_predicted = gittables_matcher(list(target_schema.properties.keys()))
+#     if expected_mapping is None:
+#         # Proxy score: percentage of predicted mappings with confidence >= 0.5
+#         threshold = 0.5
+#         high_conf_count = sum(1 for _, conf in predicted_mapping.values() if conf >= threshold)
+#         total = len(target_schema.properties)
+#         fallback_score = round(high_conf_count / total, 2) if total > 0 else 0.0
+#         score = (fallback_score, {"note": "proxy score based on high-confidence matches"})
+#         weight = total
+#     else:
+#         for k, v in expected_mapping.items():
+#             pv = predicted_mapping.get(0)
+#             if pv != v:
+#                 # print(f"Expected: {k} -> {v}, Actual: {k} -> {pv}")
+#                 pass
+
+#         # # Prepare data for display
+#         # comparison = []
+#         # for col in target_schema.properties.keys():
+#         #     expected = expected_mapping.get(col, "—") if expected_mapping else "—"
+#         #     predicted, conf = predicted_mapping.get(col, ("—", 0.0))
+#         #     comparison.append([col, expected, predicted, f"{conf:.2f}"])
+#         # # Print as table
+#         # print(tabulate(comparison, headers=["Target Column", "Expected Source", "Predicted Source", "Confidence"], tablefmt="github"))
+        
+        
+#         comparison_table = []
+#         status_icons = {"unchanged": "✔", "changed": "✖", "added": "➕", "removed": "➖"}
+
+#         # Flatten mapping to get only predicted source columns and confidence
+#         flat_predicted = {k: v[0] for k, v in predicted_mapping.items()}
+#         comparison = compare_mappings(expected_mapping, flat_predicted)
+
+#         for key in set(expected_mapping.keys()).union(predicted_mapping.keys()):
+#             expected = expected_mapping.get(key, "—")
+#             predicted_info = predicted_mapping.get(key, ("—", 0.0))
+#             predicted, conf = predicted_info
+#             source_column = predicted if predicted != "—" else None
+
+#             if key in comparison["unchanged"]:
+#                 status = status_icons["unchanged"]
+#             elif key in comparison["changed"]:
+#                 status = status_icons["changed"]
+#             elif key in comparison["added"]:
+#                 status = status_icons["added"]
+#             elif key in comparison["removed"]:
+#                 status = status_icons["removed"]
+#             else:
+#                 status = "?"
+
+#             comparison_table.append([
+#                 key,                # Target
+#                 expected,           # Expected Source
+#                 predicted,          # Predicted Source
+#                 source_column,      # Source Column
+#                 f"{conf:.2f}",      # Confidence
+#                 status              # Match Status
+#             ])
+
+#         # Print nicely formatted table
+#         print(tabulate(
+#             comparison_table,
+#             headers=["Target", "Expected", "Predicted", "Source Column", "Confidence", "Column Status"],
+#             tablefmt="fancy_grid"
+#         ))     
+        
+#         comparison_table = []
+#         headers = ["Target", "Expected", "GPT Match", "GPT Score", "Embed Match", "Embed Score", "Cluster Match", "Cluster Score"]
+
+#         for col in target_schema.properties.keys():
+#             expected = expected_mapping.get(col, "—") if expected_mapping else "—"
+
+#             gpt_match, gpt_score = predicted_mapping.get(col, ("—", 0.0))
+#             emb_match, emb_score = embed_predicted.get(col, ("—", 0.0))
+        
+#             cluster_match, cluster_score = cluster_predicted.get(col, ("—", 0.0))
+
+#             comparison_table.append([
+#                 col,
+#                 expected,
+#                 gpt_match, f"{gpt_score:.2f}",
+#                 emb_match, f"{emb_score:.2f}",
+#                 cluster_match, f"{cluster_score:.2f}"
+#             ])
+
+#         print("\n📊 Combined Matcher Comparison")
+#         print(tabulate(comparison_table, headers=headers, tablefmt="fancy_grid"))
+
+
+
+#         score = score_mapping(predicted_mapping, expected_mapping)
+#         weight = len(target_schema.properties.keys())
+#         print("Score:", score)
+
+#     if source_data is not None and output_name:
+#         rules = await infer_rules(predicted_mapping, target_schema)
+#         predicted_data = apply_rules(source_data, rules)
+#         predicted_data.to_csv(output_name, index=False)
+
+#     return predicted_mapping, score, weight
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Harmonize a dataset to a target schema.")
-    parser.add_argument("--input_file", default=INPUT_FILE, type=str)
-    parser.add_argument("--output_file", default=OUTPUT_FILE, type=str)
-    parser.add_argument("--target_schema_file", default=TARGET_SCHEMA_FILE, type=str)
-    args = parser.parse_args()
+    parser.add_argument("--seed", default=1, type=int)
+    parser.add_argument("--source-table", help="Name of the source schema/data", type=str)
+    parser.add_argument("--target-table", help="Name of the target schema/data", type=str)
+    parser.add_argument("--output-name", help="Name of the output files", type=str)
+    
+    # coma
+    parser.add_argument("--coma-threshold", default=0.0, type=float, help="Min similarity for COMA matches")
 
+    
+    args = parser.parse_args()
     asyncio.run(main(args))

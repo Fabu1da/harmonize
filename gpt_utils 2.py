@@ -1,10 +1,21 @@
+import openai
+import logging
+import os
 import json
 from typing import Optional
+from dotenv import load_dotenv
+# Load environment variables
+load_dotenv()
 
-import openai
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
-from json_schema import ObjectSchema, Schema
+from json_schema import ObjectSchema
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+
+# Load OpenAI API key
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def get_embeddings(text, model="text-embedding-3-small"):
     response = openai.embeddings.create(input=[text], model=model)
@@ -47,11 +58,12 @@ class ColumnMapping(BaseModel):
 class ColumnMappings(BaseModel):
     mappings: list[ColumnMapping]
 
-async def gpt_column_mapping(source_schema: ObjectSchema, target_schema: ObjectSchema, seed: Optional[int] = None) -> dict[str, str]:
+async def gpt_column_mapping(source_schema: ObjectSchema, target_schema: ObjectSchema, seed: int = None) -> dict[str, str]:
+    
     system_message = " ".join([
         "You are an expert in schema matching.",
         "For each target column, you identify the source column that best matches it.",
-        "Set the target column to null to not match it to any source column.",
+        "Use ´null´ to indicate that the target column should not be matched to any source column.",
         "You also provide a confidence score for each mapping.",
         "The confidence score is a float between 0.0 and 1.0.",
         "A score of 1.0 means a perfect match, and 0.0 means no match.",
@@ -71,14 +83,14 @@ async def gpt_column_mapping(source_schema: ObjectSchema, target_schema: ObjectS
                 {"role": "user", "content": user_message}
             ],
             response_format=ColumnMappings,
-            temperature=0.0,
+            temperature=0,
             seed=seed,
         )
         mappings = response.choices[0].message.parsed
-        return {mapping.target_column: ((None if mapping.source_column == 'null' else mapping.source_column), mapping.confidence) for mapping in mappings.mappings}
+        return {mapping.target_column: (mapping.source_column, mapping.confidence) for mapping in mappings.mappings}
     except Exception as e:
         print(f"Error during GPT request: {e}")
-        return {target_column: None for target_column in target_schema.properties.keys()}
+        return {target_column: None for target_column in target_schema}
 
 
 class FieldName(BaseModel):
@@ -89,10 +101,9 @@ class FieldNames(BaseModel):
     names: list[FieldName]
 
 
-# TODO: pass full properties and generate full properties
-async def gpt_rename_fields(properties: list[str], seed: Optional[int] = None) -> dict[str, str]:
+async def gpt_rename_fields(properties: list[str], seed: int = None) -> dict[str, str]:
     system_message = "You think of synonyms."
-    user_message = json.dumps(properties, indent=4)
+    user_message = json.dumps(sorted(properties), indent=4)
 
     try:
         response = openai.beta.chat.completions.parse(
@@ -102,7 +113,7 @@ async def gpt_rename_fields(properties: list[str], seed: Optional[int] = None) -
                 {"role": "user", "content": user_message}
             ],
             response_format=FieldNames,
-            temperature=0.0,
+            temperature=0,
             seed=seed,
         )
         names = response.choices[0].message.parsed
@@ -110,37 +121,3 @@ async def gpt_rename_fields(properties: list[str], seed: Optional[int] = None) -
     except Exception as e:
         print(f"Error during GPT request: {e}")
         return {p: p for p in properties}
-
-
-class Property(Schema):
-    name: str
-    required: bool
-
-class Properties(BaseModel):
-    properties: list[Property]
-
-
-# TODO: Check if high temperature is deterministic.
-async def gpt_add_properties(schema: ObjectSchema, seed: Optional[int] = None) -> ObjectSchema:
-    system_message = "You think of additional (primitive) properties."
-    user_message = schema.model_dump_json(indent=4)
-
-    try:
-        response = openai.beta.chat.completions.parse(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": user_message}
-            ],
-            response_format=Properties,
-            temperature=0.0,
-            seed=seed,
-        )
-        newProperties = response.choices[0].message.parsed
-        return ObjectSchema(
-            properties={prop.name: Schema(type=prop.type, description=prop.description, examples=prop.examples) for prop in newProperties.properties},
-            required=[prop.name for prop in newProperties.properties if prop.required],
-        )
-    except Exception as e:
-        print(f"Error during GPT request: {e}")
-        return ObjectSchema()
