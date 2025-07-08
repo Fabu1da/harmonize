@@ -1,185 +1,170 @@
-
 #!/usr/bin/env python3
-import os
-import sys
-# Ensure project root is on PYTHONPATH so local modules can be imported
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-sys.path.insert(0, PROJECT_ROOT)
-import glob
 import json
-import time
-import asyncio
-import csv
+import glob
+import argparse
+import logging
+from pathlib import Path
 
-from schema_matching import match_schema        # embedding-based matcher
-from clustering_matcher import clustering_matcher
-from synthetic_data import score_mapping        # score function for your model
-from main import main_core_inner                # core mapping function without CSV I/O
-from json_schema import ObjectSchema            # schema loader
+import numpy as np
+import pandas as pd
+from sklearn.metrics import (
+    precision_recall_curve,
+    average_precision_score,
+    precision_recall_fscore_support,
+)
+import matplotlib.pyplot as plt
 
-# Directory paths (absolute, based on project root)
-SRC_DIR = os.path.join(PROJECT_ROOT, "../assets/source")
-TRG_DIR = os.path.join(PROJECT_ROOT, "../assets/target")
-EXP_DIR = os.path.join(PROJECT_ROOT, "../assets/expected")
-COMA_OUTPUT = os.path.join(PROJECT_ROOT, "../assets/output/matches.json")  # COMA++ JSON dump file
-COMA_THRESHOLD = 0.6
+# ─── Logging ────────────────────────────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)-8s %(message)s",
+    datefmt="%H:%M:%S",
+)
+logger = logging.getLogger(__name__)
 
-async def run_python_models(source_table: str, target_table: str, expected: dict):
-    """
-    Runs GPT, embed, and cluster matchers using CSV source and JSON target schemas.
-    Skips if source CSV or target JSON is missing.
-    Returns: dict with runtimes and precision/recall/F1 for each variant.
-    """
-    results = {}
+# ─── Load ground-truth ─────────────────────────────────────────────────────────
+def load_expected(pattern: str) -> pd.DataFrame:
+    files = glob.glob(pattern)
+    if not files:
+        raise FileNotFoundError(f"No files match {pattern}")
+    recs = []
+    for fp in files:
+        data = json.load(open(fp, encoding="utf-8"))
+        # derive table key from filename (or from data["source_table"] if you prefer)
+        tbl = Path(fp).stem.lower()
+        # strip leading "www." if you want
+        tbl = tbl.removeprefix("www.")
+        maps = data.get("mappings") or data.get("mapping")
+        if maps is None:
+            raise KeyError(f"{fp} has neither 'mappings' nor 'mapping'")
+        for m in maps:
+            recs.append({
+                "source_table":  tbl,
+                "source_column": m["source_column"].lower(),
+                "target_column": m["target_column"].lower(),
+                "origin_file":   Path(fp).name,
+            })
+    df = pd.DataFrame(recs)
+    logger.info("Loaded %d GT mappings from %d files",
+                len(df), df.origin_file.nunique())
+    # duplicate check
+    dup = df.duplicated(subset=["source_table","source_column","target_column"], keep=False)
+    if dup.any():
+        logger.warning("Duplicate GT mappings:\n%s", df[dup])
+    return df
 
-    # Paths for source CSV and target JSON
-    src_csv_path = os.path.join(SRC_DIR, f"{source_table}.csv")
-    trg_json_path = os.path.join(TRG_DIR, f"{target_table}.json")
-    if not os.path.exists(src_csv_path) or not os.path.exists(trg_json_path):
-        return results  # skip missing
+# ─── Load predictions ─────────────────────────────────────────────────────────
+def load_predictions(path: str) -> pd.DataFrame:
+    raw = json.load(open(path, encoding="utf-8"))
+    recs = []
+    for rec in raw:
+        tbl = rec["source_table"].lower()
+        tbl = tbl.removeprefix("www.")  # same normalization
+        maps = rec.get("mappings") or rec.get("mapping")
+        if maps is None:
+            raise KeyError(f"Record for {tbl} missing 'mappings'/'mapping'")
+        for m in maps:
+            recs.append({
+                "source_table":  tbl,
+                "source_column": m["source_column"].lower(),
+                "target_column": m["target_column"].lower(),
+                "score":         float(m["similarity"]),
+            })
+    df = pd.DataFrame(recs)
+    logger.info("Loaded %d predicted mappings", len(df))
+    return df
 
-    # 1. GPT-based mapping (async) uses main_core to read CSV & JSON
-    t0 = time.time()
-    predicted_gpt, *_ = await main_core(source_table, target_table, expected_mapping=expected)
-    dt = time.time() - t0
-    prec_gpt, rec_gpt, f1_gpt = score_mapping(predicted_gpt, expected)
-    results['gpt'] = {'time': dt, 'precision': prec_gpt, 'recall': rec_gpt, 'f1': f1_gpt}
+# ─── Labeling & debug ──────────────────────────────────────────────────────────
+def attach_labels(df_pred: pd.DataFrame, df_gt: pd.DataFrame) -> pd.DataFrame:
+    # debug: show which tables don’t align
+    pred_tables = set(df_pred.source_table)
+    gt_tables   = set(df_gt.source_table)
+    missing_gt  = pred_tables - gt_tables
+    missing_pr  = gt_tables   - pred_tables
+    if missing_gt:
+        logger.warning("Prediction tables not in GT: %s", missing_gt)
+    if missing_pr:
+        logger.warning("GT tables not in predictions: %s", missing_pr)
 
-    # 2. Embedding FAISS matcher: use CSV headers as source schema
-    t0 = time.time()
-    import csv as _csv
-    with open(src_csv_path, newline='') as f:
-        reader = _csv.reader(f)
-        headers = next(reader)
-    with open(trg_json_path) as f:
-        trg_schema = json.load(f)
-    embed_map = match_schema(
-        source_schema={'properties': {col: {} for col in headers}},
-        target_schema=trg_schema,
-        threshold=0.0
+    gt_set = set(zip(
+        df_gt.source_table,
+        df_gt.source_column,
+        df_gt.target_column,
+    ))
+    df = df_pred.copy()
+    df["true_label"] = df.apply(
+        lambda r: int((r.source_table, r.source_column, r.target_column) in gt_set),
+        axis=1
     )
-    dt = time.time() - t0
-    prec_emb, rec_emb, f1_emb = score_mapping(embed_map, expected)
-    results['embed'] = {'time': dt, 'precision': prec_emb, 'recall': rec_emb, 'f1': f1_emb}
+    pos = df.true_label.sum()
+    logger.info("Marked %d positives and %d negatives",
+                pos, len(df)-pos)
+    return df
 
-    # 3. Clustering matcher: same source headers + pydantic target schema
-    t0 = time.time()
-    from json_schema import ObjectSchema
-    target_obj_schema = ObjectSchema.model_validate_json(json.dumps(trg_schema))
-    # Convert headers into minimal ObjectSchema for source
-    source_obj_schema = ObjectSchema(properties={col: {} for col in headers})
-    cluster_map = clustering_matcher(source_obj_schema, target_obj_schema)
-    dt = time.time() - t0
-    prec_clu, rec_clu, f1_clu = score_mapping(cluster_map, expected)
-    results['cluster'] = {'time': dt, 'precision': prec_clu, 'recall': rec_clu, 'f1': f1_clu}
+# ─── Metrics ────────────────────────────────────────────────────────────────────
+def sweep_metrics(df: pd.DataFrame, n_steps: int = 100):
+    y_true  = df.true_label.values
+    y_score = df.score.values
 
-    return results
-
-    # Load schemas
-    with open(src_schema_path) as f:
-        src_schema = ObjectSchema.model_validate_json(f.read())
-    with open(trg_schema_path) as f:
-        trg_schema = ObjectSchema.model_validate_json(f.read())
-
-    # 1. GPT-based mapping (async)
-    t0 = time.time()
-    predicted_gpt, *_ = await main_core_inner(None, src_schema, trg_schema, expected_mapping=expected)
-    dt = time.time() - t0
-    prec_gpt, rec_gpt, f1_gpt = score_mapping(predicted_gpt, expected)
-    results['gpt'] = {'time': dt, 'precision': prec_gpt, 'recall': rec_gpt, 'f1': f1_gpt}
-
-    # 2. Embedding FAISS matcher
-    t0 = time.time()
-    embed_map = match_schema(
-        source_schema=src_schema.model_dump(),
-        target_schema=trg_schema.model_dump(),
-        threshold=0.0
+    precision, recall, thresh = precision_recall_curve(y_true, y_score)
+    ap = average_precision_score(y_true, y_score)
+    df_pr = pd.DataFrame({
+        "threshold": thresh,
+        "precision": precision[:-1],
+        "recall":    recall[:-1],
+    })
+    df_pr["f1"] = 2 * (df_pr.precision * df_pr.recall) / (
+        np.clip(df_pr.precision + df_pr.recall, 1e-8, None)
     )
-    dt = time.time() - t0
-    prec_emb, rec_emb, f1_emb = score_mapping(embed_map, expected)
-    results['embed'] = {'time': dt, 'precision': prec_emb, 'recall': rec_emb, 'f1': f1_emb}
 
-    # 3. Clustering matcher
-    t0 = time.time()
-    cluster_map = clustering_matcher(src_schema, trg_schema)
-    dt = time.time() - t0
-    prec_clu, rec_clu, f1_clu = score_mapping(cluster_map, expected)
-    results['cluster'] = {'time': dt, 'precision': prec_clu, 'recall': rec_clu, 'f1': f1_clu}
+    # sample evenly if there are more points than requested
+    if len(df_pr) > n_steps:
+        idx = np.linspace(0, len(df_pr)-1, n_steps).round().astype(int)
+        df_pr = df_pr.iloc[idx].reset_index(drop=True)
+    return df_pr, ap
 
-    return results
+# ─── Plot ───────────────────────────────────────────────────────────────────────
+def plot_pr_curve(df_pr: pd.DataFrame, ap: float):
+    plt.figure(figsize=(6,6))
+    plt.plot(df_pr.recall, df_pr.precision, lw=2)
+    plt.title(f"Precision–Recall Curve (AP={ap:.3f})")
+    plt.xlabel("Recall")
+    plt.ylabel("Precision")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
 
-
-def run_coma_from_json(source_table: str, target_table: str, expected: dict):
-    """
-    Reads COMA++ matches from JSON dump and evaluates against expected mapping.
-    Returns: dict with precision/recall/F1 (no runtime here).
-    """
-    if not os.path.exists(COMA_OUTPUT):
-        return {'precision': None, 'recall': None, 'f1': None}
-
-    data = json.load(open(COMA_OUTPUT))
-    coma_map = {}
-    for entry in data:
-        src_file = os.path.splitext(entry['src_file'])[0]
-        trg_file = os.path.splitext(entry['trg_file'])[0]
-        if src_file == source_table and trg_file == target_table and entry.get('similarity',0) >= COMA_THRESHOLD:
-            coma_map[entry['source']] = entry['target']
-    if coma_map:
-        prec, rec, f1 = score_mapping(coma_map, expected)
-    else:
-        prec = rec = f1 = 0.0
-    return {'precision': prec, 'recall': rec, 'f1': f1}
-
-
-def load_expected_mapping(path: str) -> dict:
-    with open(path) as f:
-        js = json.load(f)
-    return {m['source_column']: m['target_column'] for m in js['mappings']}
-
-
+# ─── Main ───────────────────────────────────────────────────────────────────────
 def main():
-    records = []
-    for exp_file in glob.glob(os.path.join(EXP_DIR, '*.json')):
-        js = json.load(open(exp_file))
-        # Use only target_table to locate files, ignore synthetic source_table naming
-        target_table = js['target_table']
-        source_table = target_table
-        expected = load_expected_mapping(exp_file)
-        target_table = js['target_table']
-        expected = load_expected_mapping(exp_file)
+    p = argparse.ArgumentParser(__doc__)
+    p.add_argument("-e","--expected", default="expected/*.json",
+                   help="glob pattern for GT JSONs")
+    p.add_argument("-p","--pred",      default="detailed_matches.json",
+                   help="pipeline output JSON")
+    p.add_argument("-s","--steps",     type=int, default=50,
+                   help="how many thresholds to sample")
+    p.add_argument("--plot",           action="store_true",
+                   help="show PR curve")
+    p.add_argument("-o","--out",
+                   help="where to write threshold-vs-metrics CSV")
+    args = p.parse_args()
 
-        # Run matchers
-        py_results = asyncio.run(run_python_models(source_table, target_table, expected))
-        if not py_results:
-            continue
-        coma_results = run_coma_from_json(source_table, target_table, expected)
+    df_gt   = load_expected(args.expected)
+    df_pred = load_predictions(args.pred)
+    df_all  = attach_labels(df_pred, df_gt)
 
-        rec = {
-            'source': source_table,
-            'target': target_table,
-            'coma_precision': coma_results['precision'],
-            'coma_recall': coma_results['recall'],
-            'coma_f1': coma_results['f1']
-        }
-        for key, vals in py_results.items():
-            rec[f'{key}_time'] = vals['time']
-            rec[f'{key}_precision'] = vals['precision']
-            rec[f'{key}_recall'] = vals['recall']
-            rec[f'{key}_f1'] = vals['f1']
+    df_pr, ap = sweep_metrics(df_all, n_steps=args.steps)
+    logger.info("Average Precision (area under PR curve): %.3f", ap)
 
-        records.append(rec)
+    if args.out:
+        out_path = Path(args.out)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        df_pr.to_csv(out_path, index=False)
+        logger.info("Wrote metrics to %s", out_path)
 
-    # Write CSV
-    if records:
-        fieldnames = list(records[0].keys())
-        with open('benchmark_results.csv', 'w', newline='') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(records)
-        print("Benchmark results written to benchmark_results.csv")
-    else:
-        print("No benchmark records to write.")
+    print("\nSample metrics:\n", df_pr.head(10).to_string(index=False))
+    if args.plot:
+        plot_pr_curve(df_pr, ap)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
-

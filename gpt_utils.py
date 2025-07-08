@@ -6,6 +6,35 @@ from pydantic import BaseModel, Field
 
 from json_schema import ObjectSchema, Schema
 
+
+
+import openai
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_random_exponential,
+    retry_if_exception_type,
+)
+from openai import RateLimitError, APIError, Timeout
+from metrics import OPENAI_CALLS, OPENAI_LATENCY
+
+
+# Retry on rate limits, server errors, or timeouts
+@retry(
+    reraise=True,
+    stop=stop_after_attempt(5),                           # give up after 5 tries
+    wait=wait_random_exponential(min=1, max=60),          # exponential backoff 1s→60s
+    retry=retry_if_exception_type((RateLimitError, APIError, Timeout)),
+)
+def openai_with_retry(func: callable, *args, **kwargs):
+    """Call an OpenAI client method with retries on transient errors."""
+    OPENAI_CALLS.labels(api_type="chat").inc()
+    with OPENAI_LATENCY.labels(api_type="chat").time():
+        return func(*args, **kwargs)
+
+
+
+
 def get_embeddings(text, model="text-embedding-3-small"):
     response = openai.embeddings.create(input=[text], model=model)
     return response.data[0].embedding

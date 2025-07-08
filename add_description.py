@@ -4,6 +4,7 @@ import openai
 import os
 
 from json_schema import ObjectSchema
+from gpt_utils import _call_embedding_api
 
 async def add_description(source_schema: ObjectSchema) -> ObjectSchema:
     print("🔄 Mapping columns...")
@@ -17,14 +18,14 @@ async def add_description(source_schema: ObjectSchema) -> ObjectSchema:
     user_message = source_schema.model_dump_json(indent=4)
 
     try:
-        response = openai.chat.completions.create(
+        response = _call_embedding_api(openai.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": system_message},
                 {"role": "user", "content": user_message}
             ],
             temperature=0.0,
-        )
+        ))
 
         content = response.choices[0].message.content.strip()
         updated_schema = ObjectSchema.model_validate_json(content)
