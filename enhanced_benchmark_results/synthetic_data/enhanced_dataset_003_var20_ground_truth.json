@@ -1,9 +1,0 @@
-{
-  "employee_id": "emid",
-  "first_name": "first_name",
-  "last_name": "last_name",
-  "department": "department",
-  "salary": "salary",
-  "hire_date": "hire_date",
-  "is_manager": "IS_MANAGER"
-}

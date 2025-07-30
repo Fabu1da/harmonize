@@ -1,8 +1,0 @@
-{
-  "product_id": "product_id_val",
-  "product_name": "text",
-  "category": "category_data",
-  "price": "src_price",
-  "in_stock": "state",
-  "created_at": "created_at"
-}

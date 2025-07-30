@@ -1,9 +1,0 @@
-{
-  "customer_id": "col_customer_id",
-  "customer_name": "customer_name",
-  "email": "email",
-  "registration_date": "registration_date",
-  "total_orders": "toor",
-  "lifetime_value": "value",
-  "is_active": "is_active"
-}

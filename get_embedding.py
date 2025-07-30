@@ -6,7 +6,7 @@ import openai
 import numpy as np
 
 
-EMBEDDING_CACHE_FILE = "./embedding_cache.json"
+EMBEDDING_CACHE_FILE = "./cache_storage/embedding_cache.json"
 
 # Load cached embeddings (to avoid redundant API calls)
 if os.path.exists(EMBEDDING_CACHE_FILE):

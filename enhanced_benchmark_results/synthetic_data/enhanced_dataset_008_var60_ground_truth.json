@@ -1,8 +1,0 @@
-{
-  "product_id": "prid",
-  "product_name": "title",
-  "category": "category",
-  "price": "price",
-  "in_stock": "tbl_in_stock",
-  "created_at": "created_at"
-}

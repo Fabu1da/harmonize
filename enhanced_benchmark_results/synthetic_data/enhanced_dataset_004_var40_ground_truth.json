@@ -1,8 +1,0 @@
-{
-  "product_id": "key",
-  "product_name": "tbl_product_name",
-  "category": "data_category",
-  "price": "pri_ce",
-  "in_stock": "inst",
-  "created_at": "created_at"
-}

@@ -1,8 +1,0 @@
-{
-  "order_id": "orid",
-  "customer_id": "customer_id",
-  "order_date": "order_date",
-  "total_amount": "total_amount_info",
-  "status": "sta_us",
-  "shipping_address": "shipping_address"
-}

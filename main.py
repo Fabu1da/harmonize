@@ -28,6 +28,28 @@ from clustering_matcher import clustering_matcher
 # Add this:
 from ensemble_matchers import create_ensemble_matchers
 
+def get_correctness_indicator(predicted_source, ground_truth_source, confidence=0.0):
+    """Return visual indicator for correctness with color background based on confidence"""
+    # Handle None values
+    if predicted_source is None:
+        predicted_source = "—"
+    if predicted_source == "—" or ground_truth_source is None:
+        return "—"  # No match case
+    
+    # Calculate background color based on confidence (yellow to red fade)
+    # confidence: 0.0 = red, 1.0 = yellow
+    red_intensity = int(255 * (1 - confidence * 0.5))  # More red for lower confidence
+    green_intensity = int(255 * confidence)  # More green for higher confidence
+    
+    # ANSI color codes for RGB background
+    bg_color = f"\033[48;2;{red_intensity};{green_intensity};0m"  # RGB background
+    reset_color = "\033[0m"  # Reset to default
+    
+    if predicted_source == ground_truth_source:
+        return f"{bg_color}{predicted_source} ✅{reset_color}"  # Correct match with background
+    else:
+        return f"{bg_color}{predicted_source} ❌{reset_color}"  # Incorrect match with background
+
 
 
 
@@ -89,8 +111,8 @@ def apply_rules(dataset: pd.DataFrame, rules: dict[str, Callable[[dict], Any]]) 
 async def main(args: argparse.ArgumentParser):
     os.chdir(os.path.dirname(__file__))
     # await main_all_expected(args)
-    # await main_test(args)
-    await main_synthetic(args)  # Enable synthetic evaluation
+    await main_test(args)          # Real data with synthetic ground truth
+    # await main_synthetic(args)   # Pure synthetic evaluation
 
 
 
@@ -169,12 +191,18 @@ def export_table_as_image(data, headers, filename):
 
 
 async def main_test(args: argparse.Namespace):
+    """
+    Enhanced main_test that uses synthetic data as ground truth for real source data evaluation.
+    """
     results = []
     detailed_matches = []
 
+    print("🧪 Starting Real Data Evaluation with Synthetic Ground Truth")
+    print("=" * 60)
+
     # Iterate over all source CSV files
     for source_csv_path in sorted(glob.glob("./assets/source/*.csv")):
-        print("->", source_csv_path)
+        print(f"\n📁 Processing source: {source_csv_path}")
         source_table = Path(source_csv_path).stem
         source_path = f"./assets/source/{source_table}.csv"
         source_data = pd.read_csv(source_path)
@@ -194,138 +222,139 @@ async def main_test(args: argparse.Namespace):
             with open(target_path) as f:
                 target_schema = ObjectSchema.model_validate_json(f.read())
 
-            predicted_mapping, score, weight = await main_core(
-                source_table,
-                target_table,
-                seed=args.seed,
-                output_name=args.output_name
-            )
+            print(f"\n🎯 Matching {source_table} → {target_table}")
 
-            # Show mapping with examples
-            show_mapping_with_examples(predicted_mapping, source_data)
+            # Generate synthetic ground truth for this target schema
+            synthetic_source_schema, expected_mapping = await apply_perturbations(target_schema, seed=args.seed)
+            print(f"📋 Generated {len(expected_mapping)} synthetic mappings as ground truth")
 
-            # Matchers
+            # Run all matchers with the real source schema and target schema
+            predicted_mapping = await gpt_column_mapping(source_schema, target_schema, seed=args.seed)
+            
             embed_predicted = embedding_column_mapping(
                 source_columns=list(source_schema.properties.keys()),
                 target_columns=list(target_schema.properties.keys()),
                 threshold=0
             )
+            
             cluster_predicted = clustering_matcher(source_schema, target_schema)
             
-            
-            
-            majority_ensemble, weighted_ensemble = create_ensemble_matchers(
-                                                    predicted_mapping,    # GPT predictions
-                                                    embed_predicted,      # Embedding predictions  
-                                                    cluster_predicted     # Clustering predictions
-                                                )
+            # Show mapping with examples from real data
+            show_mapping_with_examples(predicted_mapping, source_data)
 
-            # Get ensemble predictions:
+            # Create ensemble matchers
+            majority_ensemble, weighted_ensemble = create_ensemble_matchers(
+                predicted_mapping,    # GPT predictions
+                embed_predicted,      # Embedding predictions  
+                cluster_predicted     # Clustering predictions
+            )
+
+            # Get ensemble predictions
             majority_predicted = majority_ensemble.predict(source_schema, target_schema)
             weighted_predicted = weighted_ensemble.predict(source_schema, target_schema)
-            
-            
-            # Extend the existing headers array:
+
+            # Build comprehensive comparison table
+            comparison_table = []
             headers = [
-                "Target", "Expected",
+                "Target", "Synthetic GT",
                 "GPT Match", "GPT Score",
                 "Embed Match", "Embed Score", 
                 "Cluster Match", "Cluster Score",
-                "Majority Match", "Majority Score",    # Add these
-                "Weighted Match", "Weighted Score"     # Add these
+                "Majority Match", "Majority Score",
+                "Weighted Match", "Weighted Score"
             ]
 
-            # In the existing loop, add:
             for col in target_schema.properties.keys():
-                # ... existing code ...
-                majority_match, majority_score = majority_predicted.get(col, ("—", 0.0))
-                weighted_match, weighted_score = weighted_predicted.get(col, ("—", 0.0))
+                synthetic_gt = expected_mapping.get(col, "—")
                 
-                comparison_table.append([
-                    col, expected,
-                    gpt_match, f"{gpt_score:.2f}",
-                    emb_match, f"{emb_score:.2f}",
-                    cluster_match, f"{cluster_score:.2f}",
-                    majority_match, f"{majority_score:.2f}",    # Add these
-                    weighted_match, f"{weighted_score:.2f}"     # Add these
-                ])
-
-            # Show comparison table
-            print(f"\n📊 Matcher Comparison for {source_table} → {target_table}")
-            weights = {"gpt": 0.5, "embed": 0.3, "cluster": 0.2}
-            comparison_table = []
-            headers = [
-                "Target",
-                "GPT Match", "GPT Score",
-                "Embed Match", "Embed Score",
-                "Cluster Match", "Cluster Score",
-                "Avg Score", "Weighted Score",
-                "Potential Match", "Suggested Match"
-            ]
-
-            for col in target_schema.properties.keys():
                 gpt_match, gpt_score = predicted_mapping.get(col, ("—", 0.0))
                 emb_match, emb_score = embed_predicted.get(col, ("—", 0.0))
                 cluster_match, cluster_score = cluster_predicted.get(col, ("—", 0.0))
-
-                gpt_score = float(gpt_score or 0.0)
-                emb_score = float(emb_score or 0.0)
-                cluster_score = float(cluster_score or 0.0)
-
-                avg_score = round((gpt_score + emb_score + cluster_score) / 3, 2)
-                weighted_score = round(
-                    gpt_score * weights["gpt"] +
-                    emb_score * weights["embed"] +
-                    cluster_score * weights["cluster"], 2
-                )
-                high_potential = "✅" if weighted_score >= 0.5 else "—"
-
-                # Suggested best prediction(s)
-                suggested = "—"
-                if avg_score >= 0.5:
-                    preds = {
-                        gpt_match: gpt_score,
-                        emb_match: emb_score,
-                        cluster_match: cluster_score
-                    }
-                    max_score = max(preds.values())
-                    best = [k for k, v in preds.items() if v == max_score and k not in ("—", None)]
-                    suggested = " / ".join(sorted(set(best))) if best else "—"
-
+                majority_match, majority_score = majority_predicted.get(col, ("—", 0.0))
+                weighted_match, weighted_score = weighted_predicted.get(col, ("—", 0.0))
+                
+                # Add color coding for correctness with confidence-based background
+                gpt_display = get_correctness_indicator(gpt_match, synthetic_gt, gpt_score)
+                emb_display = get_correctness_indicator(emb_match, synthetic_gt, emb_score)
+                cluster_display = get_correctness_indicator(cluster_match, synthetic_gt, cluster_score)
+                majority_display = get_correctness_indicator(majority_match, synthetic_gt, majority_score)
+                weighted_display = get_correctness_indicator(weighted_match, synthetic_gt, weighted_score)
+                
                 comparison_table.append([
-                    col,
-                    gpt_match, f"{gpt_score:.2f}",
-                    emb_match, f"{emb_score:.2f}",
-                    cluster_match, f"{cluster_score:.2f}",
-                    f"{avg_score:.2f}",
-                    f"{weighted_score:.2f}",
-                    high_potential,
-                    suggested
+                    col, synthetic_gt,
+                    gpt_display, f"{gpt_score:.2f}",
+                    emb_display, f"{emb_score:.2f}",
+                    cluster_display, f"{cluster_score:.2f}",
+                    majority_display, f"{majority_score:.2f}",
+                    weighted_display, f"{weighted_score:.2f}"
                 ])
 
-                # Add detailed match info for each matcher
+                # Add detailed match info for each matcher including ensembles
                 for matcher_name, match, sim in [
                     ("gpt", gpt_match, gpt_score),
                     ("embed", emb_match, emb_score),
-                    ("cluster", cluster_match, cluster_score)
+                    ("cluster", cluster_match, cluster_score),
+                    ("majority", majority_match, majority_score),
+                    ("weighted", weighted_match, weighted_score)
                 ]:
                     if match not in ("—", None):
                         detailed_matches.append({
-                            "source": f"Users_fabu1da_Desktop_schoolstuff_mastersThesis_Project_hamonize_assets_source_{source_table}.{match}",
-                            "target": f"Users_fabu1da_Desktop_schoolstuff_mastersThesis_Project_hamonize_assets_target_{target_table}.{col}",
+                            "source": f"real_{source_table}.{match}",
+                            "target": f"{target_table}.{col}",
                             "similarity": round(sim, 4),
                             "src_file": f"{source_table}.csv",
-                            "trg_file": f"{target_table}.csv",
-                            "matcher": matcher_name
+                            "trg_file": f"{target_table}.json",
+                            "matcher": matcher_name,
+                            "synthetic_gt": synthetic_gt
                         })
 
+            print(f"\n📊 Complete Matcher Comparison for {source_table} → {target_table}")
+            
+            # Calculate accuracy against synthetic ground truth for Overall row
+            approaches = [
+                ("GPT", predicted_mapping),
+                ("Embedding", embed_predicted),
+                ("Clustering", cluster_predicted),
+                ("Majority Vote", majority_predicted),
+                ("Weighted Ensemble", weighted_predicted)
+            ]
+            
+            # Build Overall summary row as per todo.txt algorithm
+            overall_row = ["Overall", " "]  # Target column = "Overall", GT column = " "
+            
+            for name, predictions in approaches:
+                correct_count = sum(1 for col, expected_src in expected_mapping.items()
+                                  if col in predictions and predictions[col][0] == expected_src)
+                total_count = len(expected_mapping)
+                accuracy = correct_count / total_count if total_count > 0 else 0.0
+                
+                # Calculate confidence-weighted score as per todo.txt algorithm
+                confidence_weighted_score = 0.0
+                for col, expected_src in expected_mapping.items():
+                    if col in predictions:
+                        predicted_src, confidence = predictions[col]
+                        is_correct = (predicted_src == expected_src)
+                        confidence_weighted_score += confidence if is_correct else -confidence
+                
+                # Normalize by total count (score = scores(approach) / len(targetSchema))
+                normalized_score = confidence_weighted_score / total_count if total_count > 0 else 0.0
+                
+                # Add accuracy and score to overall row
+                overall_row.extend([f"{accuracy:.3f}", f"{normalized_score:.3f}"])
+            
+            # Add Overall row to comparison table
+            comparison_table.append(overall_row)
+            
             print(tabulate(comparison_table, headers=headers, tablefmt="fancy_grid"))
-            export_table_as_image(comparison_table, headers, f"Comparison_{source_table}_to_{target_table}.png")
 
-            # Score summary row
+            # Export table as image
+            export_table_as_image(comparison_table, headers, f"RealData_{source_table}_to_{target_table}.png")
+
+            # Calculate overall score
+            score = score_mapping(predicted_mapping, expected_mapping)
             score_val = score[0] if score and isinstance(score, tuple) else None
             score_display = f"{score_val:.2f}" if score_val is not None else "—"
-            weight_display = str(weight) if weight is not None else "—"
+            weight_display = str(len(target_schema.properties))
 
             results.append([
                 source_table,
@@ -335,15 +364,15 @@ async def main_test(args: argparse.Namespace):
             ])
 
     # Final summary table
-    print("\n📊 Harmonization Summary Table")
+    print("\n📊 Real Data Harmonization Summary")
     summary_headers = ["Source Table", "Target Table", "Score", "Weight"]
     print(tabulate(results, headers=summary_headers, tablefmt="fancy_grid"))
-    export_table_as_image(results, summary_headers, "Harmonization_Summary.png")
+    export_table_as_image(results, summary_headers, "RealData_Harmonization_Summary.png")
 
     # Export detailed matches as JSON
-    with open("output/detailed_matches.json", "w") as f:
+    with open("output/real_data_detailed_matches.json", "w") as f:
         json.dump(detailed_matches, f, indent=2)
-    print("✅ Detailed matcher results saved to output/detailed_matches.json")
+    print("✅ Real data detailed matcher results saved to output/real_data_detailed_matches.json")
 
     
 
