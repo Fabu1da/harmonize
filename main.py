@@ -196,6 +196,10 @@ async def main_test(args: argparse.Namespace):
     """
     results = []
     detailed_matches = []
+    
+    # Add cross-dataset aggregation structure as per todo2.txt
+    target_schema_results = {}  # Group results by target schema
+    all_approaches = ["GPT", "Embedding", "Clustering", "Majority Vote", "Weighted Ensemble"]
 
     print("🧪 Starting Real Data Evaluation with Synthetic Ground Truth")
     print("=" * 60)
@@ -347,6 +351,35 @@ async def main_test(args: argparse.Namespace):
             
             print(tabulate(comparison_table, headers=headers, tablefmt="fancy_grid"))
 
+            # Store results for cross-dataset aggregation (todo2.txt)
+            if target_table not in target_schema_results:
+                target_schema_results[target_table] = {
+                    'total_combinations': 0,
+                    'approach_accuracies': {name: [] for name in all_approaches},
+                    'approach_scores': {name: [] for name in all_approaches}
+                }
+            
+            target_schema_results[target_table]['total_combinations'] += 1
+            
+            # Store individual approach results for this target schema
+            for i, (name, predictions) in enumerate(approaches):
+                correct_count = sum(1 for col, expected_src in expected_mapping.items()
+                                  if col in predictions and predictions[col][0] == expected_src)
+                total_count = len(expected_mapping)
+                accuracy = correct_count / total_count if total_count > 0 else 0.0
+                
+                confidence_weighted_score = 0.0
+                for col, expected_src in expected_mapping.items():
+                    if col in predictions:
+                        predicted_src, confidence = predictions[col]
+                        is_correct = (predicted_src == expected_src)
+                        confidence_weighted_score += confidence if is_correct else -confidence
+                
+                normalized_score = confidence_weighted_score / total_count if total_count > 0 else 0.0
+                
+                target_schema_results[target_table]['approach_accuracies'][name].append(accuracy)
+                target_schema_results[target_table]['approach_scores'][name].append(normalized_score)
+
             # Export table as image
             export_table_as_image(comparison_table, headers, f"RealData_{source_table}_to_{target_table}.png")
 
@@ -373,6 +406,65 @@ async def main_test(args: argparse.Namespace):
     with open("output/real_data_detailed_matches.json", "w") as f:
         json.dump(detailed_matches, f, indent=2)
     print("✅ Real data detailed matcher results saved to output/real_data_detailed_matches.json")
+
+    # Create cross-dataset aggregation summary table (todo2.txt Step 2)
+    print("\n" + "="*80)
+    print("📋 CROSS-DATASET AGGREGATION SUMMARY (todo2.txt)")
+    print("="*80)
+    
+    if target_schema_results:
+        # Build aggregation table
+        aggregation_table = []
+        aggregation_headers = [
+            "Target Schema",
+            "GPT Acc", "GPT Score",
+            "Embed Acc", "Embed Score", 
+            "Cluster Acc", "Cluster Score",
+            "Majority Acc", "Majority Score",
+            "Weighted Acc", "Weighted Score"
+        ]
+        
+        # Calculate averages for each target schema
+        overall_stats = {name: {'accuracies': [], 'scores': []} for name in all_approaches}
+        
+        for target_name, data in target_schema_results.items():
+            row = [target_name]
+            
+            for approach_name in all_approaches:
+                accuracies = data['approach_accuracies'][approach_name]
+                scores = data['approach_scores'][approach_name]
+                
+                avg_accuracy = sum(accuracies) / len(accuracies) if accuracies else 0.0
+                avg_score = sum(scores) / len(scores) if scores else 0.0
+                
+                # Store for overall calculation
+                overall_stats[approach_name]['accuracies'].extend(accuracies)
+                overall_stats[approach_name]['scores'].extend(scores)
+                
+                row.extend([f"{avg_accuracy:.3f}", f"{avg_score:.3f}"])
+            
+            aggregation_table.append(row)
+        
+        # Add overall summary row across all target schemas
+        overall_row = ["Overall"]
+        for approach_name in all_approaches:
+            all_accuracies = overall_stats[approach_name]['accuracies']
+            all_scores = overall_stats[approach_name]['scores']
+            
+            overall_accuracy = sum(all_accuracies) / len(all_accuracies) if all_accuracies else 0.0
+            overall_score = sum(all_scores) / len(all_scores) if all_scores else 0.0
+            
+            overall_row.extend([f"{overall_accuracy:.3f}", f"{overall_score:.3f}"])
+        
+        aggregation_table.append(overall_row)
+        
+        print(tabulate(aggregation_table, headers=aggregation_headers, tablefmt="fancy_grid"))
+        
+        # Export aggregation table as image
+        export_table_as_image(aggregation_table, aggregation_headers, "CrossDataset_Aggregation_Summary.png")
+        print("✅ Cross-dataset aggregation table saved as image")
+    else:
+        print("⚠️ No target schema results to aggregate")
 
     
 
