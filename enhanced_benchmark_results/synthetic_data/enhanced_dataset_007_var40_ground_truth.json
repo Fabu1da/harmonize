@@ -1,0 +1,8 @@
+{
+  "product_id": "fld_product_id",
+  "product_name": "product_name_field",
+  "category": "type",
+  "price": "price",
+  "in_stock": "data_in_stock",
+  "created_at": "created_at"
+}

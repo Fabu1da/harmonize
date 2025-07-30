@@ -1,0 +1,27 @@
+{
+  "type": "object",
+  "properties": {
+    "employee_id": {
+      "type": "integer"
+    },
+    "first_name": {
+      "type": "string"
+    },
+    "last_name": {
+      "type": "string"
+    },
+    "department": {
+      "type": "string"
+    },
+    "salary": {
+      "type": "number"
+    },
+    "hire_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "is_manager": {
+      "type": "boolean"
+    }
+  }
+}

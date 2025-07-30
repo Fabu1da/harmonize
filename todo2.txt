@@ -1,0 +1,34 @@
+list Headers =[]
+Headers.append("Target Schema / Source Schema" / "Target Schema" / "Dataset")
+
+forEach approache in approaches:
+    Headers.append(approache.name + " accuration")
+    Headers.append(approache.name + " score")
+
+list rows = []
+dict correctness = {}
+dict scores = ()
+
+
+forEach targetSchema in targetSchemas:
+    row = ()
+    ...
+
+    forEach approache in approaches:
+        accuration = correctness(approach) / len(targetSchema)
+        score = scores(approach) / len(targetSchema)
+
+        row.append(accuration)
+        row.append(score)
+    rows.append(row)
+
+lastRow = ()
+
+forEach approache in approaches:
+        accuration = correctness(approach) / len(targetSchema)
+        score = scores(approach) / len(targetSchema)
+
+        row.append(accuration)
+        row.append(score)
+
+rows.append(lastRow)

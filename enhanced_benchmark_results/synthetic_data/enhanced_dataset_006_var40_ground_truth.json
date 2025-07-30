@@ -1,0 +1,9 @@
+{
+  "employee_id": "employee_id",
+  "first_name": "fina",
+  "last_name": "title",
+  "department": "department_field",
+  "salary": "total",
+  "hire_date": "hire_date",
+  "is_manager": "is_manager"
+}

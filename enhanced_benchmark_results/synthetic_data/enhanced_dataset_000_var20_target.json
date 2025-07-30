@@ -1,0 +1,27 @@
+{
+  "type": "object",
+  "properties": {
+    "customer_id": {
+      "type": "integer"
+    },
+    "customer_name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "registration_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "total_orders": {
+      "type": "integer"
+    },
+    "lifetime_value": {
+      "type": "number"
+    },
+    "is_active": {
+      "type": "boolean"
+    }
+  }
+}

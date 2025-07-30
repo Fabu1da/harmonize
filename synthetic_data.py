@@ -143,6 +143,6 @@ async def apply_perturbations(
 
 # returns (unweighted accuracy, confidence-weighted accuracy)
 def score_mapping(predicted_mapping: dict[str, tuple[Optional[str], float]], expected_mapping: dict[str, Optional[str]]) -> tuple[float, float]:
-    unweighted_accuracy = sum(1 for k, v in predicted_mapping.items() if v == expected_mapping[k]) / max(len(predicted_mapping), len(expected_mapping))
-    weighted_accuracy = sum((v[1] if v[0] == expected_mapping[k] else -v[1]) for k, v in predicted_mapping.items()) / max(len(predicted_mapping), len(expected_mapping))
+    unweighted_accuracy = sum(1 for k, v in predicted_mapping.items() if v[0] == expected_mapping.get(k)) / max(len(predicted_mapping), len(expected_mapping))
+    weighted_accuracy = sum((v[1] if v[0] == expected_mapping.get(k) else -v[1]) for k, v in predicted_mapping.items()) / max(len(predicted_mapping), len(expected_mapping))
     return unweighted_accuracy, weighted_accuracy

@@ -1,0 +1,24 @@
+{
+  "type": "object",
+  "properties": {
+    "product_id": {
+      "type": "integer"
+    },
+    "product_name": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "price": {
+      "type": "number"
+    },
+    "in_stock": {
+      "type": "boolean"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date"
+    }
+  }
+}

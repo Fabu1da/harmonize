@@ -1,0 +1,8 @@
+{
+  "product_id": "prid",
+  "product_name": "PRODUCT_NAME",
+  "category": "category_info",
+  "price": "price_val",
+  "in_stock": "in_stock_col",
+  "created_at": "created-at"
+}

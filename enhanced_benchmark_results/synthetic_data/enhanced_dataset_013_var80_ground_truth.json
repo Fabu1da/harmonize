@@ -1,0 +1,8 @@
+{
+  "invoice_id": "invoice_id",
+  "customer_id": "fld_customer_id",
+  "invoice_date": "inda",
+  "due_date": "src_due_date",
+  "total_amount": "total_amount",
+  "status": "status"
+}

@@ -25,6 +25,10 @@ from synthetic_data import apply_perturbations, score_mapping
 from embedding_utils import embedding_column_mapping
 from clustering_matcher import clustering_matcher 
 
+# Add this:
+from ensemble_matchers import create_ensemble_matchers
+
+
 
 
 async def infer_rules(column_map, target_schema: ObjectSchema) -> dict[str, Callable[[dict], Any]]:
@@ -85,8 +89,8 @@ def apply_rules(dataset: pd.DataFrame, rules: dict[str, Callable[[dict], Any]]) 
 async def main(args: argparse.ArgumentParser):
     os.chdir(os.path.dirname(__file__))
     # await main_all_expected(args)
-    await main_test(args)
-    # await main_synthetic(args)
+    # await main_test(args)
+    await main_synthetic(args)  # Enable synthetic evaluation
 
 
 
@@ -105,6 +109,26 @@ def show_mapping_with_examples(predicted_mapping: dict, source_data: pd.DataFram
     print(tabulate(table, headers=["Target Column", "Predicted Source", "Confidence", "Example"], tablefmt="fancy_grid"))
 
 
+
+def export_table_as_image(data, headers, filename):
+    df = pd.DataFrame(data, columns=headers)
+
+    fig, ax = plt.subplots(figsize=(len(headers) * 2, len(data) * 0.6 + 1))
+    ax.axis('tight')
+    ax.axis('off')
+    table = ax.table(cellText=df.values, colLabels=df.columns, cellLoc='center', loc='center')
+    table.auto_set_font_size(False)
+    table.set_fontsize(10)
+    table.scale(1, 1.5)
+
+    os.makedirs("output", exist_ok=True)
+    filepath = os.path.join("output", filename)
+    plt.tight_layout()
+    plt.savefig(filepath, dpi=300)
+    plt.close(fig)
+    print(f"✅ Table saved to {filepath}")
+    
+    
 
 # async def main_test(args: argparse.Namespace):
 #     source_table = "Cricket"
@@ -140,23 +164,7 @@ def show_mapping_with_examples(predicted_mapping: dict, source_data: pd.DataFram
 
 
 
-def export_table_as_image(data, headers, filename):
-    df = pd.DataFrame(data, columns=headers)
 
-    fig, ax = plt.subplots(figsize=(len(headers) * 2, len(data) * 0.6 + 1))
-    ax.axis('tight')
-    ax.axis('off')
-    table = ax.table(cellText=df.values, colLabels=df.columns, cellLoc='center', loc='center')
-    table.auto_set_font_size(False)
-    table.set_fontsize(10)
-    table.scale(1, 1.5)
-
-    os.makedirs("output", exist_ok=True)
-    filepath = os.path.join("output", filename)
-    plt.tight_layout()
-    plt.savefig(filepath, dpi=300)
-    plt.close(fig)
-    print(f"✅ Table saved to {filepath}")
 
 
 
@@ -203,7 +211,46 @@ async def main_test(args: argparse.Namespace):
                 threshold=0
             )
             cluster_predicted = clustering_matcher(source_schema, target_schema)
+            
+            
+            
+            majority_ensemble, weighted_ensemble = create_ensemble_matchers(
+                                                    predicted_mapping,    # GPT predictions
+                                                    embed_predicted,      # Embedding predictions  
+                                                    cluster_predicted     # Clustering predictions
+                                                )
 
+            # Get ensemble predictions:
+            majority_predicted = majority_ensemble.predict(source_schema, target_schema)
+            weighted_predicted = weighted_ensemble.predict(source_schema, target_schema)
+            
+            
+            # Extend the existing headers array:
+            headers = [
+                "Target", "Expected",
+                "GPT Match", "GPT Score",
+                "Embed Match", "Embed Score", 
+                "Cluster Match", "Cluster Score",
+                "Majority Match", "Majority Score",    # Add these
+                "Weighted Match", "Weighted Score"     # Add these
+            ]
+
+            # In the existing loop, add:
+            for col in target_schema.properties.keys():
+                # ... existing code ...
+                majority_match, majority_score = majority_predicted.get(col, ("—", 0.0))
+                weighted_match, weighted_score = weighted_predicted.get(col, ("—", 0.0))
+                
+                comparison_table.append([
+                    col, expected,
+                    gpt_match, f"{gpt_score:.2f}",
+                    emb_match, f"{emb_score:.2f}",
+                    cluster_match, f"{cluster_score:.2f}",
+                    majority_match, f"{majority_score:.2f}",    # Add these
+                    weighted_match, f"{weighted_score:.2f}"     # Add these
+                ])
+
+            # Show comparison table
             print(f"\n📊 Matcher Comparison for {source_table} → {target_table}")
             weights = {"gpt": 0.5, "embed": 0.3, "cluster": 0.2}
             comparison_table = []
@@ -337,20 +384,37 @@ async def main_synthetic(args: argparse.ArgumentParser):
     score_sum = 0
     weight_sum = 0
 
-    for target_path in tqdm(sorted(glob.glob("**/*.json", root_dir="./assets/target", recursive=True))):
+    target_files = sorted(glob.glob("**/*.json", root_dir="./assets/target", recursive=True))
+    print(f"🔍 Found {len(target_files)} target files: {target_files}")
+
+    for target_path in tqdm(target_files):
+        print(f"\n🎯 Processing file: {target_path}")
         print(flush=True)
         target_table, _ = os.path.splitext(target_path)
 
-        with open(f"./assets/target/{target_table}.json", 'r') as f:
-            target_schema = ObjectSchema.model_validate_json(f.read())
-            # print("Target Schema:", target_schema.model_dump_json())
+        full_path = f"./assets/target/{target_path}"
+        print(f"📁 Reading: {full_path}")
         
+        try:
+            with open(full_path, 'r') as f:
+                content = f.read()
+                print(f"📄 File content length: {len(content)} characters")
+                if len(content.strip()) == 0:
+                    print(f"⚠️ Empty file detected: {full_path}")
+                    continue
+                    
+                target_schema = ObjectSchema.model_validate_json(content)
+                print(f"✅ Successfully parsed schema")
+        except Exception as e:
+            print(f"❌ Error reading {full_path}: {e}")
+            continue
 
         source_schema, expected_mapping = await apply_perturbations(target_schema, seed=args.seed)
         # print("Source Schema:", source_schema.model_dump_json())
         # print("Expected Mapping:", expected_mapping)
         
-        out_name = f"{target_table}__synthetic.json"
+        out_name = f"{target_table.replace('/', '_')}__synthetic.json"
+        os.makedirs("./assets/expected", exist_ok=True)
         with open(f"./assets/expected/{out_name}", "w") as f:
             json.dump({
                 "source_table": target_table + "_synthetic",
@@ -365,12 +429,16 @@ async def main_synthetic(args: argparse.ArgumentParser):
         }, f, indent=2)
         
 
-        predicted_mapping, score, weight = await main_core_inner(None, source_schema, target_schema, expected_mapping, seed=args.seed, output_name=args.output_name)
+        predicted_mapping, score, weight = await main_core_inner_with_ensembles(
+            None, source_schema, target_schema, expected_mapping, 
+            seed=args.seed, output_name=args.output_name
+        )
         score_sum += score[0] * weight
         weight_sum += weight
 
-    overall_score = score_sum / weight_sum
-    print("Overall Score", overall_score)
+    overall_score = score_sum / weight_sum if weight_sum > 0 else 0.0
+    print(f"\n🎯 Overall Score: {overall_score}")
+    return overall_score
 
 
 async def main_core(source_table: str, target_table: str, expected_mapping: Optional[dict[str, Optional[str]]] = None, seed: Optional[int] = None, output_name: Optional[str] = None):
@@ -422,6 +490,117 @@ def compare_mappings(old_mapping, new_mapping):
     return {"unchanged": unchanged, "changed": changed, "added": added, "removed": removed}
 
 
+def calculate_individual_scores(expected_mapping: dict, target_schema: ObjectSchema) -> list:
+    """
+    Calculate detailed scores for each matcher approach against ground truth.
+    """
+    # This would be called after running the matchers
+    # For now, return empty list - you can enhance this based on your needs
+    return []
+
+
+async def main_core_inner_with_ensembles(source_data: Optional[pd.DataFrame], source_schema: ObjectSchema, target_schema: ObjectSchema, expected_mapping: Optional[dict[str, Optional[str]]] = None, seed: Optional[int] = None, output_name: Optional[str] = None):
+    """
+    Enhanced version of main_core_inner that includes ensemble evaluation with ground truth.
+    """
+    # Get individual matcher predictions
+    predicted_mapping = await gpt_column_mapping(source_schema, target_schema, seed=seed)
+    
+    embed_predicted = embedding_column_mapping(
+        source_columns=list(source_schema.properties.keys()),
+        target_columns=list(target_schema.properties.keys()),
+        threshold=0
+    )
+
+    cluster_predicted = clustering_matcher(source_schema, target_schema)
+    
+    # Create ensemble matchers
+    majority_ensemble, weighted_ensemble = create_ensemble_matchers(
+        predicted_mapping,    # GPT predictions
+        embed_predicted,      # Embedding predictions  
+        cluster_predicted     # Clustering predictions
+    )
+
+    # Get ensemble predictions
+    majority_predicted = majority_ensemble.predict(source_schema, target_schema)
+    weighted_predicted = weighted_ensemble.predict(source_schema, target_schema)
+
+    if expected_mapping is None:
+        conf_sum = sum(conf for _, conf in predicted_mapping.values())
+        total = len(target_schema.properties)
+        fallback_score = conf_sum / total if total > 0 else 0.0
+        score = (fallback_score, {"note": "proxy score based on high-confidence matches"})
+        weight = total
+    else:
+        # Enhanced comparison table with ensembles
+        comparison_table = []
+        headers = [
+            "Target", "Expected",
+            "GPT Match", "GPT Score",
+            "Embed Match", "Embed Score",
+            "Cluster Match", "Cluster Score",
+            "Majority Match", "Majority Score",
+            "Weighted Match", "Weighted Score"
+        ]
+
+        for col in target_schema.properties.keys():
+            expected = expected_mapping.get(col, "—")
+
+            gpt_match, gpt_score = predicted_mapping.get(col, ("—", 0.0))
+            emb_match, emb_score = embed_predicted.get(col, ("—", 0.0))
+            cluster_match, cluster_score = cluster_predicted.get(col, ("—", 0.0))
+            majority_match, majority_score = majority_predicted.get(col, ("—", 0.0))
+            weighted_match, weighted_score = weighted_predicted.get(col, ("—", 0.0))
+            
+            comparison_table.append([
+                col, expected,
+                gpt_match, f"{gpt_score:.2f}",
+                emb_match, f"{emb_score:.2f}",
+                cluster_match, f"{cluster_score:.2f}",
+                majority_match, f"{majority_score:.2f}",
+                weighted_match, f"{weighted_score:.2f}"
+            ])
+
+        print("\n📊 Complete Matcher Comparison (Including Ensembles)")
+        print(tabulate(comparison_table, headers=headers, tablefmt="fancy_grid"))
+
+        # Calculate accuracy for each approach
+        approaches = [
+            ("GPT", predicted_mapping),
+            ("Embedding", embed_predicted),
+            ("Clustering", cluster_predicted),
+            ("Majority Vote", majority_predicted),
+            ("Weighted Ensemble", weighted_predicted)
+        ]
+        
+        accuracy_table = []
+        for name, predictions in approaches:
+            correct_count = sum(1 for col, expected_src in expected_mapping.items()
+                              if col in predictions and predictions[col][0] == expected_src)
+            total_count = len(expected_mapping)
+            accuracy = correct_count / total_count if total_count > 0 else 0.0
+            avg_confidence = sum(conf for _, conf in predictions.values()) / len(predictions) if predictions else 0.0
+            
+            accuracy_table.append([name, f"{accuracy:.3f}", f"{avg_confidence:.3f}", f"{correct_count}/{total_count}"])
+        
+        print("\n🎯 Accuracy Comparison")
+        print(tabulate(
+            accuracy_table,
+            headers=["Approach", "Accuracy", "Avg Confidence", "Correct/Total"],
+            tablefmt="fancy_grid"
+        ))
+
+        score = score_mapping(predicted_mapping, expected_mapping)
+        weight = len(target_schema.properties.keys())
+        print("Score:", score)
+
+    if source_data is not None and output_name:
+        rules = await infer_rules(predicted_mapping, target_schema)
+        predicted_data = apply_rules(source_data, rules)
+        predicted_data.to_csv(output_name, index=False)
+
+    return predicted_mapping, score, weight
+
 
 async def main_core_inner(source_data: Optional[pd.DataFrame], source_schema: ObjectSchema, target_schema: ObjectSchema, expected_mapping: Optional[dict[str, Optional[str]]] = None, seed: Optional[int] = None, output_name: Optional[str] = None):
     predicted_mapping = await gpt_column_mapping(source_schema, target_schema, seed=seed)
@@ -448,7 +627,6 @@ async def main_core_inner(source_data: Optional[pd.DataFrame], source_schema: Ob
             "GPT Match", "GPT Score",
             "Embed Match", "Embed Score",
             "Cluster Match", "Cluster Score",
-            #"GitTables Match", "GitTables Score"
         ]
 
         for col in target_schema.properties.keys():
@@ -458,14 +636,11 @@ async def main_core_inner(source_data: Optional[pd.DataFrame], source_schema: Ob
             gpt_match, gpt_score = predicted_mapping.get(col, ("—", 0.0))
             emb_match, emb_score = embed_predicted.get(col, ("—", 0.0))
             cluster_match, cluster_score = cluster_predicted.get(col, ("—", 0.0))
-            #git_match, git_score = gittables_predicted.get(col, ("—", 0.0))
-
             comparison_table.append([
                 col, expected,
                 gpt_match, f"{gpt_score:.2f}",
                 emb_match, f"{emb_score:.2f}",
-                cluster_match, f"{cluster_score:.2f}",
-                #git_match, f"{git_score:.2f}"
+                cluster_match, f"{cluster_score:.2f}"
             ])
 
         print("\n📊 Combined Matcher Comparison (Including GitTables)")

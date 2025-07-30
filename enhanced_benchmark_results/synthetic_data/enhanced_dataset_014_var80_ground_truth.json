@@ -1,0 +1,8 @@
+{
+  "invoice_id": "col_invoice_id",
+  "customer_id": "id",
+  "invoice_date": "data_invoice_date",
+  "due_date": "duda",
+  "total_amount": "total",
+  "status": "status"
+}

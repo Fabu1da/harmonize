@@ -1,0 +1,9 @@
+{
+  "employee_id": "employee_id",
+  "first_name": "name",
+  "last_name": "last_name_val",
+  "department": "category",
+  "salary": "salary",
+  "hire_date": "hire_date",
+  "is_manager": "is_manager_val"
+}
