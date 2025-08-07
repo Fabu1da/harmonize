@@ -169,7 +169,7 @@ class WeightedScoreEnsembleModel:
 
 
 # Helper function to create ensemble matchers with your current setup
-def create_ensemble_matchers(gpt_predictions, embed_predictions, cluster_predictions):
+def create_ensemble_matchers(gpt_predictions, embed_predictions, cluster_predictions, content_predictions):
     """
     Helper function to create ensemble matchers from existing prediction dictionaries.
     
@@ -191,16 +191,20 @@ def create_ensemble_matchers(gpt_predictions, embed_predictions, cluster_predict
     
     def cluster_matcher(source_schema, target_schema):
         return cluster_predictions
+
+    def content_similarity_matcher(source_data, target_schema):
+        return content_predictions
     
     # Create ensemble models
     majority_ensemble = MajorityVoteEnsembleModel(
-        gpt_matcher, embed_matcher, cluster_matcher
+        gpt_matcher, embed_matcher, cluster_matcher, content_similarity_matcher
     )
     
     weighted_ensemble = WeightedScoreEnsembleModel(
-        (gpt_matcher, 0.5),
+        (gpt_matcher, 0.4),
         (embed_matcher, 0.3), 
-        (cluster_matcher, 0.2)
+        (cluster_matcher, 0.2),
+        (content_similarity_matcher, 0.1)  # ADD THIS
     )
     
     return majority_ensemble, weighted_ensemble

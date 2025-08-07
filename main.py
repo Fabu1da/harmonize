@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 from gpt_utils import gpt_column_mapping
 from json_schema import ObjectSchema
 from schema_inference import infer_schema
-from synthetic_data import apply_perturbations, score_mapping
+from synthetic_data import apply_perturbations, score_mapping, content_similarity_matcher
 from embedding_utils import embedding_column_mapping
 from clustering_matcher import clustering_matcher 
 
@@ -199,7 +199,7 @@ async def main_test(args: argparse.Namespace):
     
     # Add cross-dataset aggregation structure as per todo2.txt
     target_schema_results = {}  # Group results by target schema
-    all_approaches = ["GPT", "Embedding", "Clustering", "Majority Vote", "Weighted Ensemble"]
+    all_approaches = ["GPT", "Embedding", "Clustering", "Content", "Majority Vote", "Weighted Ensemble"]
 
     print("🧪 Starting Real Data Evaluation with Synthetic Ground Truth")
     print("=" * 60)
@@ -235,6 +235,47 @@ async def main_test(args: argparse.Namespace):
             # Run all matchers with the real source schema and target schema
             predicted_mapping = await gpt_column_mapping(source_schema, target_schema, seed=args.seed)
             
+            # Load expected mapping for this target schema
+            target_prefix = "_".join(target_table.split("_")[:2])
+            real_gt_path = f"./assets/expected/{target_prefix}_mapping.json"
+            print(f"🔍 Loading expected mapping from: {real_gt_path}")
+
+            # Initialize real_gt_mapping as None
+            real_gt_mapping = None
+            
+            # Try to load real ground truth
+            try:
+                with open(real_gt_path) as f:
+                    real_gt_data = json.load(f)
+                
+                # Extract the actual mapping from the loaded data
+                if "mappings" in real_gt_data:
+                    # Format: {"mappings": [{"source_column": "src", "target_column": "tgt"}]}
+                    real_gt_mapping = {
+                        mapping["target_column"]: mapping["source_column"]
+                        for mapping in real_gt_data["mappings"]
+                    }
+                elif "matches" in real_gt_data:
+                    # Format: {"matches": [{"source_column": "src", "target_column": "tgt"}]}
+                    real_gt_mapping = {
+                        mapping["target_column"]: mapping["source_column"]
+                        for mapping in real_gt_data["matches"]
+                    }
+                elif isinstance(real_gt_data, dict) and all(isinstance(v, str) for v in real_gt_data.values()):
+                    # Format: {"target_col": "source_col"}
+                    real_gt_mapping = real_gt_data
+                else:
+                    print(f"⚠️ Unknown real ground truth format in {real_gt_path}")
+                    real_gt_mapping = None
+                    
+                print(f"✅ Loaded real ground truth with {len(real_gt_mapping)} mappings")
+            except FileNotFoundError:
+                print(f"⚠️ Real ground truth file not found: {real_gt_path}")
+                real_gt_mapping = None
+            except Exception as e:
+                print(f"⚠️ Error loading real ground truth: {e}")
+                real_gt_mapping = None
+
             embed_predicted = embedding_column_mapping(
                 source_columns=list(source_schema.properties.keys()),
                 target_columns=list(target_schema.properties.keys()),
@@ -243,6 +284,9 @@ async def main_test(args: argparse.Namespace):
             
             cluster_predicted = clustering_matcher(source_schema, target_schema)
             
+            # ADD THIS LINE:
+            content_predicted = content_similarity_matcher(source_data, target_schema)
+            
             # Show mapping with examples from real data
             show_mapping_with_examples(predicted_mapping, source_data)
 
@@ -250,7 +294,8 @@ async def main_test(args: argparse.Namespace):
             majority_ensemble, weighted_ensemble = create_ensemble_matchers(
                 predicted_mapping,    # GPT predictions
                 embed_predicted,      # Embedding predictions  
-                cluster_predicted     # Clustering predictions
+                cluster_predicted,    # Clustering predictions
+                content_predicted     # Content similarity predictions
             )
 
             # Get ensemble predictions
@@ -259,36 +304,42 @@ async def main_test(args: argparse.Namespace):
 
             # Build comprehensive comparison table
             comparison_table = []
+            gt_type = "Real GT" if real_gt_mapping else "Synthetic GT"
             headers = [
-                "Target", "Synthetic GT",
+                "Target", gt_type,
                 "GPT Match", "GPT Score",
                 "Embed Match", "Embed Score", 
                 "Cluster Match", "Cluster Score",
+                "Content Match", "Content Score",  # ADD THIS
                 "Majority Match", "Majority Score",
                 "Weighted Match", "Weighted Score"
             ]
 
             for col in target_schema.properties.keys():
-                synthetic_gt = expected_mapping.get(col, "—")
+                # Use real ground truth if available, otherwise use synthetic
+                ground_truth_for_col = real_gt_mapping.get(col, "—") if real_gt_mapping else expected_mapping.get(col, "—")
                 
                 gpt_match, gpt_score = predicted_mapping.get(col, ("—", 0.0))
                 emb_match, emb_score = embed_predicted.get(col, ("—", 0.0))
                 cluster_match, cluster_score = cluster_predicted.get(col, ("—", 0.0))
+                content_match, content_score = content_predicted.get(col, ("—", 0.0))  # ADD THIS
                 majority_match, majority_score = majority_predicted.get(col, ("—", 0.0))
                 weighted_match, weighted_score = weighted_predicted.get(col, ("—", 0.0))
                 
                 # Add color coding for correctness with confidence-based background
-                gpt_display = get_correctness_indicator(gpt_match, synthetic_gt, gpt_score)
-                emb_display = get_correctness_indicator(emb_match, synthetic_gt, emb_score)
-                cluster_display = get_correctness_indicator(cluster_match, synthetic_gt, cluster_score)
-                majority_display = get_correctness_indicator(majority_match, synthetic_gt, majority_score)
-                weighted_display = get_correctness_indicator(weighted_match, synthetic_gt, weighted_score)
+                gpt_display = get_correctness_indicator(gpt_match, ground_truth_for_col, gpt_score)
+                emb_display = get_correctness_indicator(emb_match, ground_truth_for_col, emb_score)
+                cluster_display = get_correctness_indicator(cluster_match, ground_truth_for_col, cluster_score)
+                content_display = get_correctness_indicator(content_match, ground_truth_for_col, content_score)  # ADD THIS
+                majority_display = get_correctness_indicator(majority_match, ground_truth_for_col, majority_score)
+                weighted_display = get_correctness_indicator(weighted_match, ground_truth_for_col, weighted_score)
                 
                 comparison_table.append([
-                    col, synthetic_gt,
+                    col, ground_truth_for_col,
                     gpt_display, f"{gpt_score:.2f}",
                     emb_display, f"{emb_score:.2f}",
                     cluster_display, f"{cluster_score:.2f}",
+                    content_display, f"{content_score:.2f}",  # ADD THIS
                     majority_display, f"{majority_score:.2f}",
                     weighted_display, f"{weighted_score:.2f}"
                 ])
@@ -309,32 +360,36 @@ async def main_test(args: argparse.Namespace):
                             "src_file": f"{source_table}.csv",
                             "trg_file": f"{target_table}.json",
                             "matcher": matcher_name,
-                            "synthetic_gt": synthetic_gt
+                            "ground_truth": ground_truth_for_col
                         })
 
             print(f"\n📊 Complete Matcher Comparison for {source_table} → {target_table}")
             
-            # Calculate accuracy against synthetic ground truth for Overall row
+            # Calculate accuracy against real or synthetic ground truth for Overall row
             approaches = [
                 ("GPT", predicted_mapping),
                 ("Embedding", embed_predicted),
                 ("Clustering", cluster_predicted),
+                ("Content", content_predicted),
                 ("Majority Vote", majority_predicted),
                 ("Weighted Ensemble", weighted_predicted)
             ]
+            
+            # Use real ground truth if available, otherwise synthetic
+            evaluation_mapping = real_gt_mapping if real_gt_mapping else expected_mapping
             
             # Build Overall summary row as per todo.txt algorithm
             overall_row = ["Overall", " "]  # Target column = "Overall", GT column = " "
             
             for name, predictions in approaches:
-                correct_count = sum(1 for col, expected_src in expected_mapping.items()
+                correct_count = sum(1 for col, expected_src in evaluation_mapping.items()
                                   if col in predictions and predictions[col][0] == expected_src)
-                total_count = len(expected_mapping)
+                total_count = len(evaluation_mapping)
                 accuracy = correct_count / total_count if total_count > 0 else 0.0
                 
                 # Calculate confidence-weighted score as per todo.txt algorithm
                 confidence_weighted_score = 0.0
-                for col, expected_src in expected_mapping.items():
+                for col, expected_src in evaluation_mapping.items():
                     if col in predictions:
                         predicted_src, confidence = predictions[col]
                         is_correct = (predicted_src == expected_src)
@@ -363,13 +418,13 @@ async def main_test(args: argparse.Namespace):
             
             # Store individual approach results for this target schema
             for i, (name, predictions) in enumerate(approaches):
-                correct_count = sum(1 for col, expected_src in expected_mapping.items()
+                correct_count = sum(1 for col, expected_src in evaluation_mapping.items()
                                   if col in predictions and predictions[col][0] == expected_src)
-                total_count = len(expected_mapping)
+                total_count = len(evaluation_mapping)
                 accuracy = correct_count / total_count if total_count > 0 else 0.0
                 
                 confidence_weighted_score = 0.0
-                for col, expected_src in expected_mapping.items():
+                for col, expected_src in evaluation_mapping.items():
                     if col in predictions:
                         predicted_src, confidence = predictions[col]
                         is_correct = (predicted_src == expected_src)
@@ -384,7 +439,7 @@ async def main_test(args: argparse.Namespace):
             export_table_as_image(comparison_table, headers, f"RealData_{source_table}_to_{target_table}.png")
 
             # Calculate overall score
-            score = score_mapping(predicted_mapping, expected_mapping)
+            score = score_mapping(predicted_mapping, evaluation_mapping)
             score_val = score[0] if score and isinstance(score, tuple) else None
             score_display = f"{score_val:.2f}" if score_val is not None else "—"
             weight_display = str(len(target_schema.properties))
@@ -420,6 +475,7 @@ async def main_test(args: argparse.Namespace):
             "GPT Acc", "GPT Score",
             "Embed Acc", "Embed Score", 
             "Cluster Acc", "Cluster Score",
+            "Content Acc", "Content Score",
             "Majority Acc", "Majority Score",
             "Weighted Acc", "Weighted Score"
         ]
@@ -635,11 +691,18 @@ async def main_core_inner_with_ensembles(source_data: Optional[pd.DataFrame], so
 
     cluster_predicted = clustering_matcher(source_schema, target_schema)
     
+    # Add content similarity matcher if source_data is available
+    if source_data is not None:
+        content_predicted = content_similarity_matcher(source_data, target_schema)
+    else:
+        content_predicted = {}  # Empty predictions if no source data
+    
     # Create ensemble matchers
     majority_ensemble, weighted_ensemble = create_ensemble_matchers(
         predicted_mapping,    # GPT predictions
-        embed_predicted,      # Embedding predictions  
-        cluster_predicted     # Clustering predictions
+        embed_predicted,      # Embedding predictions
+        cluster_predicted,    # Clustering predictions
+        content_predicted     # Content predictions
     )
 
     # Get ensemble predictions

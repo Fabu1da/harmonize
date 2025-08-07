@@ -1,0 +1,166 @@
+📋 HAMONIZE PROJECT IMPROVEMENT ROADMAP (todo3.txt)
+===========================================================
+
+## 🎯 CRITICAL PERFORMANCE ISSUES
+
+### 1. Poor Matcher Performance ⚠️
+- **Current State**: GPT: 28.3% accuracy, Others: ~1.7% accuracy
+- **Problem**: Matchers poorly calibrated for domain-specific data
+- **Solution**: 
+  - Implement domain-specific training/fine-tuning
+  - Add fuzzy string matching for column names
+  - Integrate statistical similarity measures
+  - Use better embedding models (sentence-transformers, domain-specific)
+
+### 2. Confidence Calibration Problem 📉
+- **Current State**: Negative weighted scores indicate overconfident wrong predictions
+- **Problem**: High confidence with incorrect predictions hurts ensemble performance
+- **Solution**:
+  - Implement Platt scaling for confidence calibration
+  - Use bootstrap sampling for uncertainty estimation
+  - Add temperature scaling to GPT predictions
+  - Implement conformal prediction methods
+
+## 🔧 TECHNICAL IMPROVEMENTS
+
+### 3. Runtime Performance Optimization ⏱️
+```python
+# TODO: improve runtime complexity from O(R*C) to O(C)
+def apply_rules(dataset: pd.DataFrame, rules: dict[str, Callable[[dict], Any]]) -> pd.DataFrame:
+```
+- **Problem**: Current O(R*C) complexity inefficient for large datasets
+- **Solution**:
+  - Vectorize operations using pandas native methods
+  - Implement parallel processing for matcher evaluation
+  - Add caching for expensive operations (embeddings, API calls)
+  - Use memory-efficient data structures
+
+### 4. Error Handling & Robustness 🛠️
+- **Current State**: Missing comprehensive error handling
+- **Problem**: No fallback mechanisms when matchers fail
+- **Solution**:
+  - Add retry logic for API calls with exponential backoff
+  - Implement graceful degradation when matchers fail
+  - Add comprehensive logging and monitoring
+  - Handle edge cases (empty schemas, missing data)
+
+### 5. Enhanced Ensemble Strategies 🤖
+- **Current State**: Simple majority vote and weighted average
+- **Problem**: Poor performance when all base matchers are weak
+- **Solution**:
+  - Implement stacked ensembles with meta-learning
+  - Add matcher selection based on target schema characteristics
+  - Use dynamic weighting based on confidence and historical performance
+  - Implement mixture of experts architecture
+
+## 📊 DATA QUALITY & EVALUATION
+
+### 6. Ground Truth Quality Improvement 🎯
+- **Current State**: Only synthetic ground truth available
+- **Problem**: Synthetic data may not reflect real-world complexity
+- **Solution**:
+  - Create human-annotated ground truth dataset
+  - Implement active learning for efficient annotation
+  - Cross-validation with domain experts
+  - Add inter-annotator agreement metrics
+
+### 7. Feature Engineering Enhancement 🔍
+- **Current State**: Basic embedding and clustering features
+- **Problem**: Limited feature diversity for matching decisions
+- **Solution**:
+  - Add statistical similarity measures (KL divergence, JS divergence)
+  - Implement column type detection and matching
+  - Add data distribution similarity metrics
+  - Use column value overlap and uniqueness ratios
+  - Implement semantic similarity beyond embeddings
+
+### 8. Domain Adaptation 🏗️
+- **Current State**: General-purpose matchers for specific domains
+- **Problem**: Poor performance on domain-specific schemas
+- **Solution**:
+  - Collect domain-specific training data
+  - Implement few-shot learning approaches
+  - Add domain-aware feature extraction
+  - Create domain-specific embedding spaces
+
+## 🚀 IMPLEMENTATION PRIORITY
+
+### HIGH PRIORITY (Immediate Impact):
+1. **Improve Base Matchers** - Add fuzzy matching, better embeddings
+2. **Confidence Calibration** - Implement Platt scaling
+3. **Performance Optimization** - Vectorize apply_rules function
+4. **Error Handling** - Add comprehensive error management
+
+### MEDIUM PRIORITY (Research & Development):
+5. **Advanced Ensemble Methods** - Stacked ensembles, meta-learning
+6. **Feature Engineering** - Statistical similarity, type detection
+7. **Domain Adaptation** - Domain-specific training
+
+### LOWER PRIORITY (Long-term Enhancement):
+8. **Human Evaluation Interface** - Ground truth annotation tools
+9. **Advanced Metrics** - Multi-objective evaluation
+10. **Visualization Improvements** - Interactive dashboards
+
+## 🔬 SPECIFIC CODE IMPROVEMENTS
+
+### A. Vectorized Rule Application
+```python
+def apply_rules_vectorized(dataset: pd.DataFrame, rules: dict[str, Callable]) -> pd.DataFrame:
+    result = pd.DataFrame()
+    for target_col, rule_func in rules.items():
+        result[target_col] = dataset.apply(lambda row: rule_func(row.to_dict()), axis=1)
+    return result
+```
+
+### B. Better Ensemble Weighting
+```python
+def adaptive_ensemble_weights(base_predictions, validation_scores):
+    # Weight matchers based on historical performance
+    weights = softmax(validation_scores)
+    return weighted_average(base_predictions, weights)
+```
+
+### C. Confidence Calibration
+```python
+def calibrate_confidence(predictions, true_labels):
+    # Implement Platt scaling for better confidence estimates
+    calibrator = CalibratedClassifierCV(base_estimator, method='platt')
+    return calibrator.fit(predictions, true_labels)
+```
+
+### D. Enhanced Feature Extraction
+```python
+def extract_column_features(source_col, target_col, source_data, target_schema):
+    features = {
+        'name_similarity': fuzzy_similarity(source_col, target_col),
+        'type_compatibility': check_type_compatibility(source_data[source_col], target_schema),
+        'statistical_similarity': compute_distribution_similarity(source_data[source_col]),
+        'semantic_similarity': compute_semantic_similarity(source_col, target_col)
+    }
+    return features
+```
+
+## 📈 SUCCESS METRICS
+
+### Performance Targets:
+- **Accuracy**: Achieve >70% average accuracy across all matchers
+- **Runtime**: Reduce processing time by 50% through optimization
+- **Confidence**: Achieve calibrated confidence scores (ECE < 0.1)
+- **Robustness**: Handle 99% of edge cases without failure
+
+### Evaluation Framework:
+- Cross-domain validation across different data types
+- Human evaluation on sample of predictions
+- A/B testing of ensemble strategies
+- Continuous monitoring of performance metrics
+
+## 🔄 NEXT STEPS
+
+1. **Week 1-2**: Implement fuzzy string matching and better embeddings
+2. **Week 3-4**: Add confidence calibration and performance optimization
+3. **Week 5-6**: Develop advanced ensemble methods
+4. **Week 7-8**: Create human evaluation framework and collect ground truth
+5. **Week 9-10**: Domain adaptation and feature engineering
+6. **Week 11-12**: Final testing, evaluation, and documentation
+
+This roadmap provides a systematic approach to addressing the key limitations identified in the current HAMONIZE implementation, with concrete solutions and implementation priorities.
