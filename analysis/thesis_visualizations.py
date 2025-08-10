@@ -37,7 +37,7 @@ def create_thesis_visualizations():
     
     plt.grid(axis='y', alpha=0.3)
     plt.tight_layout()
-    plt.savefig('algorithm_accuracy.png', dpi=300, bbox_inches='tight')
+    plt.savefig('/IMG/algorithm_accuracy.png', dpi=300, bbox_inches='tight')
     plt.close()  # Close instead of show
     print("✅ Created: algorithm_accuracy.png")
     

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-import dotenv
-dotenv.load_dotenv(override=True)
+from dotenv import load_dotenv
+load_dotenv(override=True)
 
 import argparse
 import asyncio
@@ -24,6 +24,8 @@ from schema_inference import infer_schema
 from synthetic_data import apply_perturbations, score_mapping, content_similarity_matcher
 from embedding_utils import embedding_column_mapping
 from clustering_matcher import clustering_matcher 
+
+from gpt_calibration import GPTConfidenceCalibrator
 
 # Add this:
 from ensemble_matchers import create_ensemble_matchers
@@ -152,6 +154,133 @@ def export_table_as_image(data, headers, filename):
     
     
 
+def export_table_as_latex(data, headers, filename, caption="", label=""):
+    """Export table data as LaTeX table format"""
+    os.makedirs("output", exist_ok=True)
+    filepath = os.path.join("output", filename)
+    
+    with open(filepath, 'w') as f:
+        # Table header
+        num_cols = len(headers)
+        col_spec = 'l' * num_cols  # Left-aligned columns, you can customize this
+        
+        f.write("\\begin{table}[htbp]\n")
+        f.write("\\centering\n")
+        f.write(f"\\begin{{tabular}}{{{col_spec}}}\n")
+        f.write("\\toprule\n")
+        
+        # Write headers
+        header_row = " & ".join(headers) + " \\\\\n"
+        f.write(header_row)
+        f.write("\\midrule\n")
+        
+        # Write data rows
+        for row in data:
+            # Clean up any special characters that might break LaTeX
+            cleaned_row = []
+            for cell in row:
+                cell_str = str(cell)
+                # Escape special LaTeX characters
+                cell_str = cell_str.replace('&', '\\&')
+                cell_str = cell_str.replace('%', '\\%')
+                cell_str = cell_str.replace('$', '\\$')
+                cell_str = cell_str.replace('#', '\\#')
+                cell_str = cell_str.replace('_', '\\_')
+                cell_str = cell_str.replace('{', '\\{')
+                cell_str = cell_str.replace('}', '\\}')
+                # Remove ANSI color codes for LaTeX
+                import re
+                cell_str = re.sub(r'\033\[[0-9;]*m', '', cell_str)
+                cleaned_row.append(cell_str)
+            
+            data_row = " & ".join(cleaned_row) + " \\\\\n"
+            f.write(data_row)
+        
+        f.write("\\bottomrule\n")
+        f.write("\\end{tabular}\n")
+        
+        if caption:
+            f.write(f"\\caption{{{caption}}}\n")
+        if label:
+            f.write(f"\\label{{{label}}}\n")
+        
+        f.write("\\end{table}\n")
+    
+    print(f"✅ LaTeX table saved to {filepath}")
+    return filepath
+
+def export_table_as_latex_landscape(data, headers, filename, caption="", label=""):
+    """Export wide table as LaTeX landscape table with smaller font"""
+    os.makedirs("output", exist_ok=True)
+    filepath = os.path.join("output", filename)
+    
+    with open(filepath, 'w') as f:
+        # Landscape table for wide tables
+        f.write("\\begin{landscape}\n")
+        f.write("\\begin{table}[htbp]\n")
+        f.write("\\centering\n")
+        f.write("\\small\n")  # Smaller font for wide tables
+        
+        # Dynamic column specification based on content width
+        num_cols = len(headers)
+        if num_cols > 8:
+            col_spec = 'p{1.5cm}' * num_cols  # Fixed width columns for very wide tables
+        else:
+            col_spec = 'l' * num_cols
+        
+        f.write(f"\\begin{{tabular}}{{{col_spec}}}\n")
+        f.write("\\toprule\n")
+        
+        # Write headers with line breaks for long headers
+        formatted_headers = []
+        for header in headers:
+            # Break long headers
+            if len(header) > 10:
+                header = header.replace(' ', '\\\\ ')
+            formatted_headers.append(header)
+        
+        header_row = " & ".join(formatted_headers) + " \\\\\n"
+        f.write(header_row)
+        f.write("\\midrule\n")
+        
+        # Write data rows
+        for row in data:
+            cleaned_row = []
+            for cell in row:
+                cell_str = str(cell)
+                # Escape LaTeX special characters
+                cell_str = cell_str.replace('&', '\\&')
+                cell_str = cell_str.replace('%', '\\%')
+                cell_str = cell_str.replace('$', '\\$')
+                cell_str = cell_str.replace('#', '\\#')
+                cell_str = cell_str.replace('_', '\\_')
+                cell_str = cell_str.replace('{', '\\{')
+                cell_str = cell_str.replace('}', '\\}')
+                # Remove ANSI color codes and emoji
+                import re
+                cell_str = re.sub(r'\033\[[0-9;]*m', '', cell_str)
+                cell_str = re.sub(r'[✅❌]', '', cell_str)  # Remove checkmarks
+                cleaned_row.append(cell_str)
+            
+            data_row = " & ".join(cleaned_row) + " \\\\\n"
+            f.write(data_row)
+        
+        f.write("\\bottomrule\n")
+        f.write("\\end{tabular}\n")
+        
+        if caption:
+            f.write(f"\\caption{{{caption}}}\n")
+        if label:
+            f.write(f"\\label{{{label}}}\n")
+        
+        f.write("\\end{table}\n")
+        f.write("\\end{landscape}\n")
+    
+    print(f"✅ LaTeX landscape table saved to {filepath}")
+    return filepath
+    
+
+
 # async def main_test(args: argparse.Namespace):
 #     source_table = "Cricket"
 #     results = []
@@ -189,6 +318,11 @@ def export_table_as_image(data, headers, filename):
 
 
 
+gpt_calibrator = GPTConfidenceCalibrator()
+
+
+
+
 
 async def main_test(args: argparse.Namespace):
     """
@@ -203,6 +337,15 @@ async def main_test(args: argparse.Namespace):
 
     print("🧪 Starting Real Data Evaluation with Synthetic Ground Truth")
     print("=" * 60)
+    
+    # Load pre-trained GPT calibrator if it exists
+    calibrator_path = "./models/gpt_isotonic_calibrator.pkl"
+    if os.path.exists(calibrator_path):
+        global gpt_calibrator
+        gpt_calibrator = GPTConfidenceCalibrator.load(calibrator_path)
+        print("✅ Loaded pre-trained GPT isotonic calibrator")
+    else:
+        print("⚠️ No pre-trained GPT calibrator found, starting from scratch")
 
     # Iterate over all source CSV files
     for source_csv_path in sorted(glob.glob("./assets/source/*.csv")):
@@ -232,10 +375,7 @@ async def main_test(args: argparse.Namespace):
             synthetic_source_schema, expected_mapping = await apply_perturbations(target_schema, seed=args.seed)
             print(f"📋 Generated {len(expected_mapping)} synthetic mappings as ground truth")
 
-            # Run all matchers with the real source schema and target schema
-            predicted_mapping = await gpt_column_mapping(source_schema, target_schema, seed=args.seed)
-            
-            # Load expected mapping for this target schema
+            # Load expected mapping for this target schema first
             target_prefix = "_".join(target_table.split("_")[:2])
             real_gt_path = f"./assets/expected/{target_prefix}_mapping.json"
             print(f"🔍 Loading expected mapping from: {real_gt_path}")
@@ -275,6 +415,21 @@ async def main_test(args: argparse.Namespace):
             except Exception as e:
                 print(f"⚠️ Error loading real ground truth: {e}")
                 real_gt_mapping = None
+
+            # Run all matchers with the real source schema and target schema
+            raw_gpt_predictions = await gpt_column_mapping(source_schema, target_schema, seed=args.seed)
+            
+            # Collect training data if we have ground truth
+            if real_gt_mapping:
+                gpt_calibrator.collect_training_data(raw_gpt_predictions, real_gt_mapping)
+            
+            # Apply calibration if calibrator is fitted
+            if gpt_calibrator.is_fitted:
+                predicted_mapping = gpt_calibrator.calibrate_predictions(raw_gpt_predictions)
+                print("🎯 Applied isotonic calibration to GPT-4 confidences")
+            else:
+                predicted_mapping = raw_gpt_predictions
+                print("⚠️ Using raw GPT-4 confidences (calibrator not fitted)")
 
             embed_predicted = embedding_column_mapping(
                 source_columns=list(source_schema.properties.keys()),
@@ -364,6 +519,13 @@ async def main_test(args: argparse.Namespace):
                         })
 
             print(f"\n📊 Complete Matcher Comparison for {source_table} → {target_table}")
+            export_table_as_latex_landscape(
+                comparison_table, 
+                headers, 
+                f"RealData_{source_table}_to_{target_table}.tex",
+                caption=f"Matcher comparison for {source_table} to {target_table}",
+                label=f"tab:{source_table}_{target_table}"
+            )
             
             # Calculate accuracy against real or synthetic ground truth for Overall row
             approaches = [
@@ -450,12 +612,51 @@ async def main_test(args: argparse.Namespace):
                 score_display,
                 weight_display
             ])
+    
+   # The above code snippet is training a GPT Isotonic Calibrator using the `fit()` method. After
+   # training the calibrator, it saves the trained model to a specified path, generates a calibration
+   # curve plot, generates LaTeX code for the calibration plot, saves the LaTeX code to a file, and
+   # prints calibration statistics including Raw ECE (Expected Calibration Error), Calibrated ECE,
+   # Improvement, and the number of training samples used.
+    # After processing all data, train the calibrator
+    print("\n🎯 Training GPT Isotonic Calibrator...")
+    if gpt_calibrator.fit():
+        # Save the trained calibrator
+        os.makedirs("./models", exist_ok=True)
+        gpt_calibrator.save(calibrator_path)
+        
+        # Generate calibration plots
+        os.makedirs("./output", exist_ok=True)
+        # Generate calibration plot
+        fig = gpt_calibrator.plot_calibration_curve("./output/gpt_calibration_curve.png")
+        if fig:
+            plt.close(fig)  # Close to free memory
+        
+        # Generate LaTeX calibration plot code
+        latex_code = gpt_calibrator.generate_latex_calibration_plot()
+        
+        # Print calibration statistics
+        stats = gpt_calibrator.get_calibration_stats()
+        if stats:
+            print(f"📊 GPT Calibration Results:")
+            print(f"   Raw ECE: {stats['raw_ece']:.4f}")
+            print(f"   Calibrated ECE: {stats['calibrated_ece']:.4f}")
+            print(f"   Improvement: {stats['improvement']:.4f}")
+            print(f"   Training samples: {stats['n_samples']}")
 
     # Final summary table
     print("\n📊 Real Data Harmonization Summary")
     summary_headers = ["Source Table", "Target Table", "Score", "Weight"]
     print(tabulate(results, headers=summary_headers, tablefmt="fancy_grid"))
     export_table_as_image(results, summary_headers, "RealData_Harmonization_Summary.png")
+    
+    export_table_as_latex(
+        results, 
+        summary_headers, 
+        "RealData_Harmonization_Summary.tex",
+        caption="Real data harmonization summary across all source-target combinations",
+        label="tab:harmonization_summary"
+    )
 
     # Export detailed matches as JSON
     with open("output/real_data_detailed_matches.json", "w") as f:
@@ -518,7 +719,16 @@ async def main_test(args: argparse.Namespace):
         
         # Export aggregation table as image
         export_table_as_image(aggregation_table, aggregation_headers, "CrossDataset_Aggregation_Summary.png")
+        
+        
         print("✅ Cross-dataset aggregation table saved as image")
+        export_table_as_latex(
+            aggregation_table, 
+            aggregation_headers, 
+            "CrossDataset_Aggregation_Summary.tex",
+            caption="Cross-dataset aggregation summary",
+            label="tab:cross_dataset_aggregation"
+        )
     else:
         print("⚠️ No target schema results to aggregate")
 

@@ -88,6 +88,9 @@ class MajorityVoteEnsembleModel:
                 final_mapping[target_col] = ("—", 0.0)
         
         return final_mapping
+    
+
+
 
 
 class WeightedScoreEnsembleModel:
