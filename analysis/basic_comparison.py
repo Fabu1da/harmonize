@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from scipy.stats import chi2
 from normalization import load_data, load_ground_truth, build_gt_set, normalize_coma, normalize_harmonize, aggregate_max_by_pair
 from evaluation import compute_candidate_coverage, eval_set_based, eval_ranking_based, eval_hungarian_one_to_one
@@ -286,5 +287,156 @@ def benchmark():
         print(f"  Bootstrap mean: {R.f1_ci['bootstrap_mean']:.3f} ± {R.f1_ci['bootstrap_std']:.3f}")
         print(f"  95% CI: [{R.f1_ci['ci_lower']:.3f}, {R.f1_ci['ci_upper']:.3f}]")
         print(f"  CI width: {R.f1_ci['ci_width']:.3f}")
+
+    # ========== ORGANIZED RESULTS PRESENTATION ==========
+    print("\n" + "="*80)
+    print("                    COMPREHENSIVE BENCHMARK RESULTS")
+    print("="*80)
+    
+    present_organized_results(runs, mcnemar_result, G)
+
+
+def present_organized_results(runs, mcnemar_result, gt_set):
+    """Present all benchmark results in organized, presentable tables"""
+    
+    # 1. Coverage and Basic Stats
+    print("\n1. DATASET OVERVIEW")
+    print("-" * 50)
+    coverage_data = []
+    for run in runs:
+        coverage_data.append({
+            'Method': run.run_id,
+            'Total Pairs': len(run.pairs),
+            'Coverage (%)': f"{run.coverage * 100:.1f}%"
+        })
+    
+    coverage_df = pd.DataFrame(coverage_data)
+    print(coverage_df.to_string(index=False))
+    print(f"\nGround Truth Pairs: {len(gt_set)}")
+    
+    # 2. Set-based Evaluation Results
+    print("\n\n2. SET-BASED EVALUATION (Best F1 Threshold)")
+    print("-" * 70)
+    setbased_data = []
+    for run in runs:
+        setbased_data.append({
+            'Method': run.run_id,
+            'Best Threshold': f"{run.best['best_threshold']:.3f}",
+            'Precision': f"{run.best['precision_at_best']:.3f}",
+            'Recall': f"{run.best['recall_at_best']:.3f}",
+            'F1-Score': f"{run.best['best_F1']:.3f}",
+            'F1 CI (95%)': f"[{run.f1_ci['ci_lower']:.3f}, {run.f1_ci['ci_upper']:.3f}]"
+        })
+    
+    setbased_df = pd.DataFrame(setbased_data)
+    print(setbased_df.to_string(index=False))
+    
+    # 3. Ranking-based Evaluation Results
+    print("\n\n3. RANKING-BASED EVALUATION")
+    print("-" * 60)
+    ranking_data = []
+    for run in runs:
+        ranking_data.append({
+            'Method': run.run_id,
+            'MRR': f"{run.ranking['MRR']:.3f}",
+            'Hits@1': f"{run.ranking['Hits@1']:.3f}",
+            'Hits@3': f"{run.ranking['Hits@3']:.3f}",
+            'Hits@5': f"{run.ranking['Hits@5']:.3f}",
+            'Recall@1': f"{run.ranking['Recall@1']:.3f}",
+            'Recall@3': f"{run.ranking['Recall@3']:.3f}",
+            'Recall@5': f"{run.ranking['Recall@5']:.3f}"
+        })
+    
+    ranking_df = pd.DataFrame(ranking_data)
+    print(ranking_df.to_string(index=False))
+    
+    # 4. Hungarian Assignment Results
+    print("\n\n4. HUNGARIAN ONE-TO-ONE ASSIGNMENT")
+    print("-" * 55)
+    hungarian_data = []
+    for run in runs:
+        hungarian_data.append({
+            'Method': run.run_id,
+            'Precision': f"{run.hungarian['precision']:.3f}",
+            'Recall': f"{run.hungarian['recall']:.3f}",
+            'F1-Score': f"{run.hungarian['f1']:.3f}",
+            'Assignments': run.hungarian['num_assignments']
+        })
+    
+    hungarian_df = pd.DataFrame(hungarian_data)
+    print(hungarian_df.to_string(index=False))
+    
+    # 5. Statistical Significance Test
+    print("\n\n5. STATISTICAL SIGNIFICANCE (McNEMAR TEST)")
+    print("-" * 60)
+    print("Comparison: COMA vs HARMONIZE-max (Top-1 Correctness)")
+    print(f"COMA Correct Sources: {mcnemar_result['run1_correct']}/{mcnemar_result['total_sources']} ({mcnemar_result['run1_correct']/mcnemar_result['total_sources']*100:.1f}%)")
+    print(f"HARMONIZE-max Correct Sources: {mcnemar_result['run2_correct']}/{mcnemar_result['total_sources']} ({mcnemar_result['run2_correct']/mcnemar_result['total_sources']*100:.1f}%)")
+    print(f"Test Statistic: {mcnemar_result['statistic']:.3f}")
+    print(f"P-value: {mcnemar_result['p_value']:.6f}")
+    print(f"Significant (α=0.05): {'Yes' if mcnemar_result['significant'] else 'No'}")
+    
+    # Contingency table
+    ct = mcnemar_result['contingency_table']
+    print(f"\nContingency Table:")
+    print(f"                  HARMONIZE-max")
+    print(f"                Correct | Wrong")
+    print(f"COMA Correct      {ct['a']:3d}   |  {ct['b']:3d}")
+    print(f"COMA Wrong        {ct['c']:3d}   |  {ct['d']:3d}")
+    
+    # 6. Summary Table - Key Metrics Only
+    print("\n\n6. SUMMARY - KEY PERFORMANCE METRICS")
+    print("-" * 60)
+    summary_data = []
+    for run in runs:
+        summary_data.append({
+            'Method': run.run_id,
+            'F1-Score': f"{run.best['best_F1']:.3f}",
+            'MRR': f"{run.ranking['MRR']:.3f}",
+            'Hits@1': f"{run.ranking['Hits@1']:.3f}",
+            'Hungarian F1': f"{run.hungarian['f1']:.3f}",
+            'Coverage': f"{run.coverage:.3f}"
+        })
+    
+    summary_df = pd.DataFrame(summary_data)
+    print(summary_df.to_string(index=False))
+    
+    # 7. Export results to CSV
+    print("\n\n7. EXPORTING RESULTS")
+    print("-" * 30)
+    
+    # Create output directory if it doesn't exist
+    import os
+    os.makedirs('../output', exist_ok=True)
+    
+    # Export all tables
+    coverage_df.to_csv('../output/benchmark_coverage.csv', index=False)
+    setbased_df.to_csv('../output/benchmark_setbased.csv', index=False)
+    ranking_df.to_csv('../output/benchmark_ranking.csv', index=False)
+    hungarian_df.to_csv('../output/benchmark_hungarian.csv', index=False)
+    summary_df.to_csv('../output/benchmark_summary.csv', index=False)
+    
+    # Export McNemar test results
+    mcnemar_df = pd.DataFrame([{
+        'Comparison': 'COMA vs HARMONIZE-max',
+        'COMA_Correct': mcnemar_result['run1_correct'],
+        'HARMONIZE_Correct': mcnemar_result['run2_correct'],
+        'Total_Sources': mcnemar_result['total_sources'],
+        'Test_Statistic': mcnemar_result['statistic'],
+        'P_Value': mcnemar_result['p_value'],
+        'Significant': mcnemar_result['significant']
+    }])
+    mcnemar_df.to_csv('../output/benchmark_mcnemar.csv', index=False)
+    
+    print("✓ Coverage results exported to: ../output/benchmark_coverage.csv")
+    print("✓ Set-based results exported to: ../output/benchmark_setbased.csv")
+    print("✓ Ranking results exported to: ../output/benchmark_ranking.csv")
+    print("✓ Hungarian results exported to: ../output/benchmark_hungarian.csv")
+    print("✓ Summary results exported to: ../output/benchmark_summary.csv")
+    print("✓ McNemar test results exported to: ../output/benchmark_mcnemar.csv")
+    
+    print("\n" + "="*80)
+    print("                    BENCHMARK ANALYSIS COMPLETE")
+    print("="*80)
 
 benchmark()

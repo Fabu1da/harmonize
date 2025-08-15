@@ -1,18 +1,31 @@
 #!/usr/bin/env python
+"""
+Hamonize: Schema Matching and Data Harmonization System
+Main entry point for the system providing schema matching capabilities using
+GPT, embedding-based, and clustering-based approaches with pairwise comparison analysis.
+"""
+
 from dotenv import load_dotenv
 load_dotenv(override=True)
 
 import argparse
 import asyncio
 from functools import partial
-from collections.abc import Callable
+from collections.abc import Callable, MutableMapping
 import json
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional
 import logging
 import glob
 from pathlib import Path
 import os
 from tabulate import tabulate
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 import pandas as pd
 from tqdm import tqdm
@@ -21,36 +34,59 @@ import matplotlib.pyplot as plt
 from gpt_utils import gpt_column_mapping
 from json_schema import ObjectSchema
 from schema_inference import infer_schema
-from synthetic_data import apply_perturbations, score_mapping, content_similarity_matcher
+from synthetic_data import apply_perturbations, score_mapping
 from embedding_utils import embedding_column_mapping
 from clustering_matcher import clustering_matcher 
 
 from gpt_calibration import GPTConfidenceCalibrator
-
-# Add this:
+from pairwise_comparison import print_triple_comparison_table, run_all_pairwise_comparisons, print_pairwise_comparison_table,  run_triple_comparison
 from ensemble_matchers import create_ensemble_matchers
+from run_pairwise_analysis import run_pairwise_analysis
+
+
+print(f"🔍 IMPORT DEBUG:")
+try:
+    from embedding_utils import embedding_column_mapping
+    print(f"   ✅ embedding_column_mapping imported successfully")
+except ImportError as e:
+    print(f"   ❌ embedding_column_mapping import failed: {e}")
+
+try:
+    from clustering_matcher import clustering_matcher
+    print(f"   ✅ clustering_matcher imported successfully")
+except ImportError as e:
+    print(f"   ❌ clustering_matcher import failed: {e}")
 
 def get_correctness_indicator(predicted_source, ground_truth_source, confidence=0.0):
-    """Return visual indicator for correctness with color background based on confidence"""
+    """
+    Generate a visual indicator for mapping correctness with confidence-based coloring.
+    
+    Args:
+        predicted_source: The predicted source column name
+        ground_truth_source: The actual/expected source column name  
+        confidence: Confidence score (0.0 to 1.0) for the prediction
+        
+    Returns:
+        String with ANSI color codes for terminal display
+    """
     # Handle None values
     if predicted_source is None:
         predicted_source = "—"
     if predicted_source == "—" or ground_truth_source is None:
         return "—"  # No match case
     
-    # Calculate background color based on confidence (yellow to red fade)
-    # confidence: 0.0 = red, 1.0 = yellow
-    red_intensity = int(255 * (1 - confidence * 0.5))  # More red for lower confidence
-    green_intensity = int(255 * confidence)  # More green for higher confidence
+    # Calculate background color based on confidence (low confidence = red, high = green)
+    red_intensity = int(255 * (1 - confidence * 0.5))
+    green_intensity = int(255 * confidence)
     
     # ANSI color codes for RGB background
-    bg_color = f"\033[48;2;{red_intensity};{green_intensity};0m"  # RGB background
+    bg_color = f"\033[48;2;{red_intensity};{green_intensity};0m"
     reset_color = "\033[0m"  # Reset to default
     
     if predicted_source == ground_truth_source:
-        return f"{bg_color}{predicted_source} ✅{reset_color}"  # Correct match with background
+        return f"{bg_color}{predicted_source} {reset_color}"  # Correct match with background
     else:
-        return f"{bg_color}{predicted_source} ❌{reset_color}"  # Incorrect match with background
+        return f"{bg_color}{predicted_source} {reset_color}"  # Incorrect match with background
 
 
 
@@ -61,8 +97,6 @@ async def infer_rules(column_map, target_schema: ObjectSchema) -> dict[str, Call
         target: source
         for target, source in column_map.items()
     }
-
-    print("🔍 Processed column_map:", column_map)  # Debugging output
 
     def rule(data: dict, target_column: str) -> Any:
         """
@@ -100,47 +134,75 @@ async def infer_rules(column_map, target_schema: ObjectSchema) -> dict[str, Call
 
 # TODO: improve runtime complexity from O(R*C) to O(C)
 def apply_rules(dataset: pd.DataFrame, rules: dict[str, Callable[[dict], Any]]) -> pd.DataFrame:
+    """
+    Apply transformation rules to convert source dataset to target format.
+    
+    Args:
+        dataset: Source dataframe to transform
+        rules: Dictionary mapping target columns to transformation functions
+        
+    Returns:
+        Transformed dataframe with target schema
+        
+    Note:
+        Current implementation has O(R*C) complexity where R=rows, C=columns.
+        Could be optimized to O(C) by vectorizing operations.
+    """
     columns = rules.keys()
-    dataset2 = pd.DataFrame(columns=columns)
+    transformed_df = pd.DataFrame(columns=columns)
+    
     for row in dataset.itertuples():
         index = row.Index
         data = row._asdict()
         for column, rule in rules.items():
             value = rule(data)
-            dataset2.loc[index, column] = value
-    return dataset2
+            transformed_df.loc[index, column] = value
+            
+    return transformed_df
 
 async def main(args: argparse.ArgumentParser):
+    """Main entry point for the Hamonize system."""
     os.chdir(os.path.dirname(__file__))
-    # await main_all_expected(args)
-    await main_test(args)          # Real data with synthetic ground truth
-    # await main_synthetic(args)   # Pure synthetic evaluation
+    
+    # Check if user wants to run pairwise analysis
+    if getattr(args, 'pairwise', False):
+        logging.info("Running Step 2: Pairwise Matcher Analysis...")
+        await run_pairwise_analysis()
+        return
+    
+    # Run default schema matching pipeline
+    await main_test(args)
 
 
 
 def show_mapping_with_examples(predicted_mapping: dict, source_data: pd.DataFrame, num_examples: int = 1):
+    """Display schema mapping results with example values in a formatted table."""
     table = []
 
     for target, (src, conf) in predicted_mapping.items():
         if src and src in source_data.columns:
             examples = source_data[src].dropna().astype(str).unique()[:num_examples]
-            example_val = ", ".join(examples) if examples.any() else "—"
+            example_val = ", ".join(examples) if len(examples) > 0 else "—"
         else:
             example_val = "—"
         
         table.append([target, src if src else "—", f"{conf:.2f}", example_val])
 
-    print(tabulate(table, headers=["Target Column", "Predicted Source", "Confidence", "Example"], tablefmt="fancy_grid"))
+    headers = ["Target Column", "Predicted Source", "Confidence", "Example"]
+    print(tabulate(table, headers=headers, tablefmt="fancy_grid"))
 
 
 
 def export_table_as_image(data, headers, filename):
+    """Export table data as a high-quality image file."""
     df = pd.DataFrame(data, columns=headers)
 
     fig, ax = plt.subplots(figsize=(len(headers) * 2, len(data) * 0.6 + 1))
     ax.axis('tight')
     ax.axis('off')
-    table = ax.table(cellText=df.values, colLabels=df.columns, cellLoc='center', loc='center')
+    
+    table = ax.table(cellText=df.values, colLabels=df.columns, 
+                    cellLoc='center', loc='center')
     table.auto_set_font_size(False)
     table.set_fontsize(10)
     table.scale(1, 1.5)
@@ -148,21 +210,37 @@ def export_table_as_image(data, headers, filename):
     os.makedirs("output", exist_ok=True)
     filepath = os.path.join("output", filename)
     plt.tight_layout()
-    plt.savefig(filepath, dpi=300)
+    plt.savefig(filepath, dpi=300, bbox_inches='tight')
     plt.close(fig)
-    print(f"✅ Table saved to {filepath}")
+    
+    logging.info(f"Table exported to {filepath}")
     
     
 
 def export_table_as_latex(data, headers, filename, caption="", label=""):
-    """Export table data as LaTeX table format"""
+    """Export table data as LaTeX table format with proper escaping."""
     os.makedirs("output", exist_ok=True)
     filepath = os.path.join("output", filename)
     
+    def escape_latex(text):
+        """Escape special LaTeX characters and remove ANSI codes."""
+        import re
+        text = str(text)
+        # Remove ANSI color codes
+        text = re.sub(r'\033\[[0-9;]*m', '', text)
+        # Escape LaTeX special characters
+        latex_special_chars = {
+            '&': '\\&', '%': '\\%', '$': '\\$', '#': '\\#',
+            '_': '\\_', '{': '\\{', '}': '\\}', '~': '\\textasciitilde{}',
+            '^': '\\textasciicircum{}'
+        }
+        for char, escape in latex_special_chars.items():
+            text = text.replace(char, escape)
+        return text
+    
     with open(filepath, 'w') as f:
-        # Table header
         num_cols = len(headers)
-        col_spec = 'l' * num_cols  # Left-aligned columns, you can customize this
+        col_spec = 'l' * num_cols
         
         f.write("\\begin{table}[htbp]\n")
         f.write("\\centering\n")
@@ -170,31 +248,14 @@ def export_table_as_latex(data, headers, filename, caption="", label=""):
         f.write("\\toprule\n")
         
         # Write headers
-        header_row = " & ".join(headers) + " \\\\\n"
-        f.write(header_row)
+        escaped_headers = [escape_latex(h) for h in headers]
+        f.write(" & ".join(escaped_headers) + " \\\\\n")
         f.write("\\midrule\n")
         
         # Write data rows
         for row in data:
-            # Clean up any special characters that might break LaTeX
-            cleaned_row = []
-            for cell in row:
-                cell_str = str(cell)
-                # Escape special LaTeX characters
-                cell_str = cell_str.replace('&', '\\&')
-                cell_str = cell_str.replace('%', '\\%')
-                cell_str = cell_str.replace('$', '\\$')
-                cell_str = cell_str.replace('#', '\\#')
-                cell_str = cell_str.replace('_', '\\_')
-                cell_str = cell_str.replace('{', '\\{')
-                cell_str = cell_str.replace('}', '\\}')
-                # Remove ANSI color codes for LaTeX
-                import re
-                cell_str = re.sub(r'\033\[[0-9;]*m', '', cell_str)
-                cleaned_row.append(cell_str)
-            
-            data_row = " & ".join(cleaned_row) + " \\\\\n"
-            f.write(data_row)
+            escaped_row = [escape_latex(cell) for cell in row]
+            f.write(" & ".join(escaped_row) + " \\\\\n")
         
         f.write("\\bottomrule\n")
         f.write("\\end{tabular}\n")
@@ -206,7 +267,7 @@ def export_table_as_latex(data, headers, filename, caption="", label=""):
         
         f.write("\\end{table}\n")
     
-    print(f"✅ LaTeX table saved to {filepath}")
+    logging.info(f"LaTeX table exported to {filepath}")
     return filepath
 
 def export_table_as_latex_landscape(data, headers, filename, caption="", label=""):
@@ -278,49 +339,135 @@ def export_table_as_latex_landscape(data, headers, filename, caption="", label="
     
     print(f"✅ LaTeX landscape table saved to {filepath}")
     return filepath
-    
 
 
-# async def main_test(args: argparse.Namespace):
-#     source_table = "Cricket"
-#     results = []
-
-#     for target_path in tqdm(sorted(glob.glob("**/*.json", root_dir="./assets/target", recursive=True))):
-#         print(flush=True)
-#         target_table, _ = os.path.splitext(target_path)
-#         # await main_core(source_table, target_table, seed=args.seed, output_name=args.output_name)
-#         predicted_mapping, score, weight = await main_core(
-#             source_table,
-#             target_table,
-#             seed=args.seed,
-#             output_name=args.output_name
-#         )
-        
-#         show_mapping_with_examples(predicted_mapping, pd.read_csv(f"./assets/source/{source_table}.csv"))
-
-#         results.append([
-#             source_table,
-#             target_table,
-#             f"{score[0]:.2f}" if score else "—",
-#             weight if weight is not None else "—"
-#         ])
-
-#     # Print result summary table
-#     print("\n📊 Harmonization Summary Table")
-#     print(tabulate(
-#         results,
-#         headers=["Source Table", "Target Table", "Score", "Weight"],
-#         tablefmt="fancy_grid"
-#     ))
-
-
-
-
-
-
+# Initialize global GPT calibrator
 gpt_calibrator = GPTConfidenceCalibrator()
 
 
+
+
+def create_triple_comparison_summary(all_triple_results: List[Dict[str, MutableMapping[str, Any]]]) -> Dict[str, Any]:
+    """Create a comprehensive summary of all triple comparison results across datasets."""
+    if not all_triple_results:
+        return {"error": "No triple comparison results to summarize"}
+    
+    # Aggregate statistics across all datasets
+    total_columns = 0
+    total_all_correct = 0
+    total_two_correct = 0
+    total_one_correct = 0
+    total_none_correct = 0
+    total_agreements = 0
+    total_majority_correct = 0
+    
+    dataset_summaries = []
+    
+    for result in all_triple_results:
+        if 'error' in result:
+            continue
+            
+        stats = result['summary_stats']
+        source_table = result.get('source_table', 'Unknown')
+        target_table = result.get('target_table', 'Unknown')
+        
+        # Aggregate totals
+        dataset_total = stats['total_columns']
+        total_columns += dataset_total
+        total_all_correct += len(result['patterns']['all_correct'])
+        total_two_correct += len(result['patterns']['two_correct'])
+        total_one_correct += len(result['patterns']['one_correct'])
+        total_none_correct += len(result['patterns']['none_correct'])
+        total_majority_correct += len(result['patterns']['majority_correct'])
+        
+        # Calculate agreement count from detailed results
+        agreement_count = sum(1 for detail in result['detailed_results'] if detail['all_agree'])
+        total_agreements += agreement_count
+        
+        # Store dataset summary
+        dataset_summaries.append({
+            'source_table': source_table,
+            'target_table': target_table,
+            'total_columns': dataset_total,
+            'all_correct_rate': stats['all_correct_rate'],
+            'agreement_rate': stats['agreement_rate'],
+            'majority_accuracy': stats['majority_accuracy']
+        })
+    
+    # Calculate overall statistics
+    overall_stats = {
+        'total_columns': total_columns,
+        'total_datasets': len([r for r in all_triple_results if 'error' not in r]),
+        'all_correct_rate': total_all_correct / total_columns if total_columns > 0 else 0,
+        'two_correct_rate': total_two_correct / total_columns if total_columns > 0 else 0,
+        'one_correct_rate': total_one_correct / total_columns if total_columns > 0 else 0,
+        'none_correct_rate': total_none_correct / total_columns if total_columns > 0 else 0,
+        'agreement_rate': total_agreements / total_columns if total_columns > 0 else 0,
+        'majority_accuracy': total_majority_correct / total_columns if total_columns > 0 else 0
+    }
+    
+    return {
+        'overall_stats': overall_stats,
+        'dataset_summaries': dataset_summaries
+    }
+
+def print_triple_comparison_summary(summary: Dict):
+    """Print formatted summary of all triple comparison results."""
+    
+    if 'error' in summary:
+        print(f"❌ {summary['error']}")
+        return
+    
+    overall = summary['overall_stats']
+    
+    print(f"\n🎯 TRIPLE COMPARISON GLOBAL SUMMARY")
+    print("=" * 80)
+    print(f"📊 Overall Statistics Across {overall['total_datasets']} Datasets:")
+    print(f"   Total Columns Analyzed: {overall['total_columns']}")
+    print(f"   All 3 Matchers Correct: {overall['all_correct_rate']:.1%}")
+    print(f"   2/3 Matchers Correct:   {overall['two_correct_rate']:.1%}")
+    print(f"   1/3 Matchers Correct:   {overall['one_correct_rate']:.1%}")
+    print(f"   0/3 Matchers Correct:   {overall['none_correct_rate']:.1%}")
+    print(f"   Agreement Rate:         {overall['agreement_rate']:.1%}")
+    print(f"   Majority Vote Accuracy: {overall['majority_accuracy']:.1%}")
+    
+    # Dataset-by-dataset breakdown
+    print(f"\n📋 Dataset Breakdown:")
+    dataset_table = []
+    headers = ["Source", "Target", "Columns", "All Correct", "Agreement", "Majority Acc"]
+    
+    for ds in summary['dataset_summaries']:
+        dataset_table.append([
+            ds['source_table'],
+            ds['target_table'], 
+            ds['total_columns'],
+            f"{ds['all_correct_rate']:.1%}",
+            f"{ds['agreement_rate']:.1%}",
+            f"{ds['majority_accuracy']:.1%}"
+        ])
+    
+    print(tabulate(dataset_table, headers=headers, tablefmt="fancy_grid"))
+    
+    # Export results
+    print(f"\n💾 Exporting detailed summary...")
+    os.makedirs("output", exist_ok=True)
+    
+    # Export as JSON
+    with open("output/triple_comparison_global_summary.json", "w") as f:
+        json.dump(summary, f, indent=2, default=str)
+    
+    # Export dataset table as LaTeX
+    export_table_as_latex(
+        dataset_table,
+        headers,
+        "triple_comparison_summary.tex",
+        caption="Triple comparison summary across all datasets",
+        label="tab:triple_comparison_summary"
+    )
+    
+    print("✅ Global triple comparison summary exported to:")
+    print("   📁 output/triple_comparison_global_summary.json")
+    print("   📄 output/triple_comparison_summary.tex")
 
 
 
@@ -330,26 +477,28 @@ async def main_test(args: argparse.Namespace):
     """
     results = []
     detailed_matches = []
-    
+    all_pairwise_results = []  # Collect all pairwise comparison results
+    all_triple_results = []  # Collect all triple comparison results
+
     # Add cross-dataset aggregation structure as per todo2.txt
     target_schema_results = {}  # Group results by target schema
-    all_approaches = ["GPT", "Embedding", "Clustering", "Content", "Majority Vote", "Weighted Ensemble"]
+    all_approaches = ["GPT", "Embedding", "Clustering", "Majority Vote", "Weighted Ensemble"]
 
-    print("🧪 Starting Real Data Evaluation with Synthetic Ground Truth")
-    print("=" * 60)
+    logging.info("🧪 Starting Real Data Evaluation with Synthetic Ground Truth")
+    logging.info("=" * 60)
     
     # Load pre-trained GPT calibrator if it exists
     calibrator_path = "./models/gpt_isotonic_calibrator.pkl"
     if os.path.exists(calibrator_path):
         global gpt_calibrator
         gpt_calibrator = GPTConfidenceCalibrator.load(calibrator_path)
-        print("✅ Loaded pre-trained GPT isotonic calibrator")
+        logging.info("✅ Loaded pre-trained GPT isotonic calibrator")
     else:
-        print("⚠️ No pre-trained GPT calibrator found, starting from scratch")
+        logging.warning("⚠️ No pre-trained GPT calibrator found, starting from scratch")
 
     # Iterate over all source CSV files
     for source_csv_path in sorted(glob.glob("./assets/source/*.csv")):
-        print(f"\n📁 Processing source: {source_csv_path}")
+        logging.info(f"📁 Processing source: {source_csv_path}")
         source_table = Path(source_csv_path).stem
         source_path = f"./assets/source/{source_table}.csv"
         source_data = pd.read_csv(source_path)
@@ -369,16 +518,16 @@ async def main_test(args: argparse.Namespace):
             with open(target_path) as f:
                 target_schema = ObjectSchema.model_validate_json(f.read())
 
-            print(f"\n🎯 Matching {source_table} → {target_table}")
+            logging.info(f"🎯 Matching {source_table} → {target_table}")
 
             # Generate synthetic ground truth for this target schema
             synthetic_source_schema, expected_mapping = await apply_perturbations(target_schema, seed=args.seed)
-            print(f"📋 Generated {len(expected_mapping)} synthetic mappings as ground truth")
+            logging.info(f"📋 Generated {len(expected_mapping)} synthetic mappings as ground truth")
 
             # Load expected mapping for this target schema first
             target_prefix = "_".join(target_table.split("_")[:2])
             real_gt_path = f"./assets/expected/{target_prefix}_mapping.json"
-            print(f"🔍 Loading expected mapping from: {real_gt_path}")
+            logging.info(f"🔍 Loading expected mapping from: {real_gt_path}")
 
             # Initialize real_gt_mapping as None
             real_gt_mapping = None
@@ -437,10 +586,57 @@ async def main_test(args: argparse.Namespace):
                 threshold=0
             )
             
+            
             cluster_predicted = clustering_matcher(source_schema, target_schema)
             
-            # ADD THIS LINE:
-            content_predicted = content_similarity_matcher(source_data, target_schema)
+            # NEW: Step 2 - Pairwise Comparisons as shown in your sketch
+            print(f"\n🔄 Step 2: Pairwise Matcher Comparisons")
+            
+            pairwise_results, pairwise_result_entry = run_all_pairwise_comparisons(
+                gpt_predictions=predicted_mapping,
+                embedding_predictions=embed_predicted,
+                clustering_predictions=cluster_predicted,
+                ground_truth=real_gt_mapping,  # Use real ground truth if available
+                source_table=source_table,
+                target_table=target_table
+            )
+            
+            # Display pairwise comparison results
+            print_pairwise_comparison_table(
+                pairwise_results, source_table, target_table
+            )
+            
+            # Store pairwise result for later export
+            all_pairwise_results.append(pairwise_result_entry)
+            
+            
+            # NEW: Step 3 - Triple Comparison Analysis
+            print(f"\n🔄 Step 3: Triple Matcher Comparison Against Ground Truth")
+            if real_gt_mapping:
+                triple_results = run_triple_comparison(
+                    gpt_predictions=predicted_mapping,
+                    embedding_predictions=embed_predicted,
+                    clustering_predictions=cluster_predicted,
+                    ground_truth=real_gt_mapping,
+                    source_table=source_table,
+                    target_table=target_table
+                )
+                
+                # ADD: Store source and target info
+                triple_results['source_table'] = source_table
+                triple_results['target_table'] = target_table
+                
+                # ADD: Store for global summary
+                all_triple_results.append(triple_results)
+    
+                
+                print(f"📊 Triple Comparison Results for {source_table} → {target_table}")
+                print_triple_comparison_table(triple_results, source_table, target_table)
+
+
+            else:
+                print("⚠️ No real ground truth available for triple comparison")
+            
             
             # Show mapping with examples from real data
             show_mapping_with_examples(predicted_mapping, source_data)
@@ -450,7 +646,6 @@ async def main_test(args: argparse.Namespace):
                 predicted_mapping,    # GPT predictions
                 embed_predicted,      # Embedding predictions  
                 cluster_predicted,    # Clustering predictions
-                content_predicted     # Content similarity predictions
             )
 
             # Get ensemble predictions
@@ -465,7 +660,6 @@ async def main_test(args: argparse.Namespace):
                 "GPT Match", "GPT Score",
                 "Embed Match", "Embed Score", 
                 "Cluster Match", "Cluster Score",
-                "Content Match", "Content Score",  # ADD THIS
                 "Majority Match", "Majority Score",
                 "Weighted Match", "Weighted Score"
             ]
@@ -477,7 +671,6 @@ async def main_test(args: argparse.Namespace):
                 gpt_match, gpt_score = predicted_mapping.get(col, ("—", 0.0))
                 emb_match, emb_score = embed_predicted.get(col, ("—", 0.0))
                 cluster_match, cluster_score = cluster_predicted.get(col, ("—", 0.0))
-                content_match, content_score = content_predicted.get(col, ("—", 0.0))  # ADD THIS
                 majority_match, majority_score = majority_predicted.get(col, ("—", 0.0))
                 weighted_match, weighted_score = weighted_predicted.get(col, ("—", 0.0))
                 
@@ -485,7 +678,6 @@ async def main_test(args: argparse.Namespace):
                 gpt_display = get_correctness_indicator(gpt_match, ground_truth_for_col, gpt_score)
                 emb_display = get_correctness_indicator(emb_match, ground_truth_for_col, emb_score)
                 cluster_display = get_correctness_indicator(cluster_match, ground_truth_for_col, cluster_score)
-                content_display = get_correctness_indicator(content_match, ground_truth_for_col, content_score)  # ADD THIS
                 majority_display = get_correctness_indicator(majority_match, ground_truth_for_col, majority_score)
                 weighted_display = get_correctness_indicator(weighted_match, ground_truth_for_col, weighted_score)
                 
@@ -494,7 +686,6 @@ async def main_test(args: argparse.Namespace):
                     gpt_display, f"{gpt_score:.2f}",
                     emb_display, f"{emb_score:.2f}",
                     cluster_display, f"{cluster_score:.2f}",
-                    content_display, f"{content_score:.2f}",  # ADD THIS
                     majority_display, f"{majority_score:.2f}",
                     weighted_display, f"{weighted_score:.2f}"
                 ])
@@ -532,7 +723,6 @@ async def main_test(args: argparse.Namespace):
                 ("GPT", predicted_mapping),
                 ("Embedding", embed_predicted),
                 ("Clustering", cluster_predicted),
-                ("Content", content_predicted),
                 ("Majority Vote", majority_predicted),
                 ("Weighted Ensemble", weighted_predicted)
             ]
@@ -612,6 +802,30 @@ async def main_test(args: argparse.Namespace):
                 score_display,
                 weight_display
             ])
+
+    print(f"\n🔄 STEP 2 COMPLETE: Creating Global Triple Comparison Summary")
+    print("=" * 80)
+    create_triple_comparison_summary(all_triple_results)
+
+    # NEW: Create and display pairwise comparison summary
+    print(f"\n🔄 STEP 2 COMPLETE: Creating Global Pairwise Comparison Summary")
+    print("=" * 80)
+
+    if all_pairwise_results:
+        # Use the existing export function to create the summary
+        from pairwise_comparison import export_pairwise_results
+        
+        summary_data, headers = export_pairwise_results(
+            all_pairwise_results, 
+            "global_pairwise_comparison_results"
+        )
+        
+        print(f"✅ Pairwise comparison summary exported for {len(all_pairwise_results)} dataset pairs")
+    else:
+        print("⚠️ No pairwise comparison results to summarize")
+        
+        
+   
     
    # The above code snippet is training a GPT Isotonic Calibrator using the `fit()` method. After
    # training the calibrator, it saves the trained model to a specified path, generates a calibration
@@ -643,6 +857,15 @@ async def main_test(args: argparse.Namespace):
             print(f"   Calibrated ECE: {stats['calibrated_ece']:.4f}")
             print(f"   Improvement: {stats['improvement']:.4f}")
             print(f"   Training samples: {stats['n_samples']}")
+            
+    # NEW: Export complete pairwise comparison results
+    print(f"\n🔄 STEP 2 COMPLETE: Exporting Pairwise Comparison Results")
+    print("=" * 70)
+    if all_pairwise_results:
+        export_pairwise_results(all_pairwise_results, "complete_pairwise_analysis")
+    else:
+        print("⚠️ No pairwise results to export")
+    
 
     # Final summary table
     print("\n📊 Real Data Harmonization Summary")
@@ -676,7 +899,6 @@ async def main_test(args: argparse.Namespace):
             "GPT Acc", "GPT Score",
             "Embed Acc", "Embed Score", 
             "Cluster Acc", "Cluster Score",
-            "Content Acc", "Content Score",
             "Majority Acc", "Majority Score",
             "Weighted Acc", "Weighted Score"
         ]
@@ -893,26 +1115,50 @@ async def main_core_inner_with_ensembles(source_data: Optional[pd.DataFrame], so
     # Get individual matcher predictions
     predicted_mapping = await gpt_column_mapping(source_schema, target_schema, seed=seed)
     
+    
+    print(f"\n🔍 GPT MATCHER DEBUG############################:")
+    
     embed_predicted = embedding_column_mapping(
         source_columns=list(source_schema.properties.keys()),
         target_columns=list(target_schema.properties.keys()),
         threshold=0
     )
+    
+   # In your main.py, replace the existing debug blocks with more detailed ones:
+
+    # After embed_predicted = embedding_column_mapping(...)
+    print(f"\n🔍 EMBEDDING MATCHER DETAILED DEBUG:")
+    print(f"   Source columns: {list(source_schema.properties.keys())}")
+    print(f"   Target columns: {list(target_schema.properties.keys())}")
+    print(f"   Number of source columns: {len(source_schema.properties.keys())}")
+    print(f"   Number of target columns: {len(target_schema.properties.keys())}")
+    print(f"   Threshold: 0")
+    print(f"   Function called successfully: {embed_predicted is not None}")
+    print(f"   Return type: {type(embed_predicted)}")
+    print(f"   Embedding predictions count: {len(embed_predicted) if embed_predicted else 'None/Empty'}")
+    print(f"   Embedding results: {embed_predicted}")
+
+ 
+    
+    
 
     cluster_predicted = clustering_matcher(source_schema, target_schema)
+    # ADD THIS DEBUG BLOCK:
+    # After cluster_predicted = clustering_matcher(...)
+    print(f"\n🔍 CLUSTERING MATCHER DETAILED DEBUG:")
+    print(f"   Source schema type: {type(source_schema)}")
+    print(f"   Target schema type: {type(target_schema)}")
+    print(f"   Function called successfully: {cluster_predicted is not None}")
+    print(f"   Return type: {type(cluster_predicted)}")
+    print(f"   Clustering predictions count: {len(cluster_predicted) if cluster_predicted else 'None/Empty'}")
+    print(f"   Clustering results: {cluster_predicted}")
     
-    # Add content similarity matcher if source_data is available
-    if source_data is not None:
-        content_predicted = content_similarity_matcher(source_data, target_schema)
-    else:
-        content_predicted = {}  # Empty predictions if no source data
     
     # Create ensemble matchers
     majority_ensemble, weighted_ensemble = create_ensemble_matchers(
         predicted_mapping,    # GPT predictions
         embed_predicted,      # Embedding predictions
         cluster_predicted,    # Clustering predictions
-        content_predicted     # Content predictions
     )
 
     # Get ensemble predictions
@@ -1052,119 +1298,6 @@ async def main_core_inner(source_data: Optional[pd.DataFrame], source_schema: Ob
     return predicted_mapping, score, weight
 
 
-# async def main_core_inner(source_data: Optional[pd.DataFrame], source_schema: ObjectSchema, target_schema: ObjectSchema, expected_mapping: Optional[dict[str, Optional[str]]] = None, seed: Optional[int] = None, output_name: Optional[str] = None):
-#     predicted_mapping = await gpt_column_mapping(source_schema, target_schema, seed=seed)
-#     # print("Predicted Mapping:", predicted_mapping)
-    
-#     embed_predicted = embedding_column_mapping(
-#         source_columns=list(source_schema.properties.keys()),
-#         target_columns=list(target_schema.properties.keys()),
-#         threshold=0
-#     )
-
-#     cluster_predicted = clustering_matcher(source_schema, target_schema)
-#     gittables_predicted = gittables_matcher(list(target_schema.properties.keys()))
-#     if expected_mapping is None:
-#         # Proxy score: percentage of predicted mappings with confidence >= 0.5
-#         threshold = 0.5
-#         high_conf_count = sum(1 for _, conf in predicted_mapping.values() if conf >= threshold)
-#         total = len(target_schema.properties)
-#         fallback_score = round(high_conf_count / total, 2) if total > 0 else 0.0
-#         score = (fallback_score, {"note": "proxy score based on high-confidence matches"})
-#         weight = total
-#     else:
-#         for k, v in expected_mapping.items():
-#             pv = predicted_mapping.get(0)
-#             if pv != v:
-#                 # print(f"Expected: {k} -> {v}, Actual: {k} -> {pv}")
-#                 pass
-
-#         # # Prepare data for display
-#         # comparison = []
-#         # for col in target_schema.properties.keys():
-#         #     expected = expected_mapping.get(col, "—") if expected_mapping else "—"
-#         #     predicted, conf = predicted_mapping.get(col, ("—", 0.0))
-#         #     comparison.append([col, expected, predicted, f"{conf:.2f}"])
-#         # # Print as table
-#         # print(tabulate(comparison, headers=["Target Column", "Expected Source", "Predicted Source", "Confidence"], tablefmt="github"))
-        
-        
-#         comparison_table = []
-#         status_icons = {"unchanged": "✔", "changed": "✖", "added": "➕", "removed": "➖"}
-
-#         # Flatten mapping to get only predicted source columns and confidence
-#         flat_predicted = {k: v[0] for k, v in predicted_mapping.items()}
-#         comparison = compare_mappings(expected_mapping, flat_predicted)
-
-#         for key in set(expected_mapping.keys()).union(predicted_mapping.keys()):
-#             expected = expected_mapping.get(key, "—")
-#             predicted_info = predicted_mapping.get(key, ("—", 0.0))
-#             predicted, conf = predicted_info
-#             source_column = predicted if predicted != "—" else None
-
-#             if key in comparison["unchanged"]:
-#                 status = status_icons["unchanged"]
-#             elif key in comparison["changed"]:
-#                 status = status_icons["changed"]
-#             elif key in comparison["added"]:
-#                 status = status_icons["added"]
-#             elif key in comparison["removed"]:
-#                 status = status_icons["removed"]
-#             else:
-#                 status = "?"
-
-#             comparison_table.append([
-#                 key,                # Target
-#                 expected,           # Expected Source
-#                 predicted,          # Predicted Source
-#                 source_column,      # Source Column
-#                 f"{conf:.2f}",      # Confidence
-#                 status              # Match Status
-#             ])
-
-#         # Print nicely formatted table
-#         print(tabulate(
-#             comparison_table,
-#             headers=["Target", "Expected", "Predicted", "Source Column", "Confidence", "Column Status"],
-#             tablefmt="fancy_grid"
-#         ))     
-        
-#         comparison_table = []
-#         headers = ["Target", "Expected", "GPT Match", "GPT Score", "Embed Match", "Embed Score", "Cluster Match", "Cluster Score"]
-
-#         for col in target_schema.properties.keys():
-#             expected = expected_mapping.get(col, "—") if expected_mapping else "—"
-
-#             gpt_match, gpt_score = predicted_mapping.get(col, ("—", 0.0))
-#             emb_match, emb_score = embed_predicted.get(col, ("—", 0.0))
-        
-#             cluster_match, cluster_score = cluster_predicted.get(col, ("—", 0.0))
-
-#             comparison_table.append([
-#                 col,
-#                 expected,
-#                 gpt_match, f"{gpt_score:.2f}",
-#                 emb_match, f"{emb_score:.2f}",
-#                 cluster_match, f"{cluster_score:.2f}"
-#             ])
-
-#         print("\n📊 Combined Matcher Comparison")
-#         print(tabulate(comparison_table, headers=headers, tablefmt="fancy_grid"))
-
-
-
-#         score = score_mapping(predicted_mapping, expected_mapping)
-#         weight = len(target_schema.properties.keys())
-#         print("Score:", score)
-
-#     if source_data is not None and output_name:
-#         rules = await infer_rules(predicted_mapping, target_schema)
-#         predicted_data = apply_rules(source_data, rules)
-#         predicted_data.to_csv(output_name, index=False)
-
-#     return predicted_mapping, score, weight
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Harmonize a dataset to a target schema.")
     parser.add_argument("--seed", default=1, type=int)
@@ -1174,6 +1307,9 @@ if __name__ == "__main__":
     
     # coma
     parser.add_argument("--coma-threshold", default=0.0, type=float, help="Min similarity for COMA matches")
+    
+    # pairwise analysis
+    parser.add_argument("--pairwise", action="store_true", help="Run Step 2: Pairwise matcher comparison analysis")
 
     
     args = parser.parse_args()
