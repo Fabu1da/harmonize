@@ -5,9 +5,12 @@ import de.wdilab.coma.structure.MatchResult;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Scanner;
 
@@ -53,7 +56,9 @@ public class Main {
 
                 for (Object srcEl : result.getSrcMatchObjects()) {
                     for (Object trgEl : result.getTrgMatchObjects(srcEl)) {
-                        float sim = result.getSimilarity(srcEl, trgEl);
+                        BigDecimal sim = BigDecimal.valueOf(result.getSimilarity(srcEl, trgEl)).setScale(4, RoundingMode.HALF_UP);
+
+                        
                         // Create JSON-like object
                         Map<String, Object> entry = new HashMap<>();
                         entry.put("source", srcEl.toString());
@@ -72,7 +77,7 @@ public class Main {
             fw.write("[");
             for (int i = 0; i < allMatches.size(); i++) {
                 Map<String, Object> m = allMatches.get(i);
-                String jsonObj = String.format(
+                String jsonObj = String.format(Locale.US,
                     "{\"source\":\"%s\",\"target\":\"%s\",\"similarity\":%.4f,\"src_file\":\"%s\",\"trg_file\":\"%s\"}",
                     m.get("source"), m.get("target"), m.get("similarity"), m.get("src_file"), m.get("trg_file")
                 );

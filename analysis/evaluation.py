@@ -22,7 +22,15 @@ def eval_set_based(run, gt_set, thresholds):
     
     best_f1 = 0.0
     best_threshold = 0.0
-    best_metrics = {}
+    best_metrics = {
+        'best_F1': 0.0,
+        'best_threshold': 0.0,
+        'precision_at_best': 0.0,
+        'recall_at_best': 0.0,
+        'tp': 0,
+        'fp': 0,
+        'fn': len(gt_set)
+    }
     
     for threshold in thresholds:
         # Get pairs above threshold

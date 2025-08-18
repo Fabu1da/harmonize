@@ -158,13 +158,13 @@ def normalize_coma(coma_data, run_id="COMA"):
         
         # Convert similarity score (handle European decimal format)
         similarity_str = item['similarity']
-        if ',' in similarity_str:
-            similarity = float(similarity_str.replace(',', '.'))
-        else:
-            similarity = float(similarity_str)
+        # if ',' in similarity_str:
+        #     similarity = float(similarity_str.replace(',', '.'))
+        # else:
+        #     similarity = float(similarity_str)
         
         pairs.append(pair)
-        scores[pair] = similarity
+        scores[pair] = similarity_str
     return Run(run_id=run_id, pairs=pairs, scores=scores)
 
 

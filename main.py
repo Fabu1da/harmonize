@@ -42,6 +42,7 @@ from gpt_calibration import GPTConfidenceCalibrator
 from pairwise_comparison import print_triple_comparison_table, run_all_pairwise_comparisons, print_pairwise_comparison_table,  run_triple_comparison
 from ensemble_matchers import create_ensemble_matchers
 from run_pairwise_analysis import run_pairwise_analysis
+from dataset_type_breakdown import create_dataset_type_breakdown, print_dataset_type_breakdown_table, export_latex_breakdown_table
 
 
 print(f"🔍 IMPORT DEBUG:")
@@ -470,6 +471,351 @@ def print_triple_comparison_summary(summary: Dict):
     print("   📄 output/triple_comparison_summary.tex")
 
 
+def create_individual_matcher_ranking(all_triple_results: List[Dict]) -> Dict[str, float]:
+    """Create ranking of individual matchers based on overall performance across all datasets."""
+    if not all_triple_results:
+        return {}
+    
+    gpt_correct = 0
+    embedding_correct = 0
+    clustering_correct = 0
+    total_predictions = 0
+    
+    # Aggregate performance across all datasets
+    for triple_result in all_triple_results:
+        if 'error' not in triple_result and 'detailed_results' in triple_result:
+            for detail in triple_result['detailed_results']:
+                total_predictions += 1
+                if detail.get('gpt_correct', False):
+                    gpt_correct += 1
+                if detail.get('embedding_correct', False):
+                    embedding_correct += 1
+                if detail.get('clustering_correct', False):
+                    clustering_correct += 1
+    
+    if total_predictions > 0:
+        rankings = {
+            "GPT": gpt_correct / total_predictions,
+            "Embedding": embedding_correct / total_predictions, 
+            "Clustering": clustering_correct / total_predictions,
+        }
+        
+        return rankings
+    return {}
+
+def print_individual_matcher_ranking(rankings: Dict[str, float], total_predictions: int):
+    """Print formatted individual matcher performance ranking."""
+    if not rankings:
+        print("❌ No individual matcher rankings available")
+        return
+    
+    # Sort by performance
+    sorted_rankings = sorted(rankings.items(), key=lambda x: x[1], reverse=True)
+    
+    print(f"\n🏆 INDIVIDUAL MATCHER PERFORMANCE RANKING")
+    print("=" * 60)
+    print(f"📊 Based on {total_predictions} total column predictions across all datasets:")
+    print()
+    
+    for i, (matcher, accuracy) in enumerate(sorted_rankings, 1):
+        medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉"
+        print(f"   {medal} {i}. {matcher:12}: {accuracy:.1%} accuracy")
+    
+    # Calculate performance gaps
+    if len(sorted_rankings) >= 2:
+        best_score = sorted_rankings[0][1]
+        worst_score = sorted_rankings[-1][1]
+        gap = best_score - worst_score
+        print(f"\n📈 Performance Analysis:")
+        print(f"   Best vs Worst Gap: {gap:.1%}")
+        
+        if gap < 0.1:  # Less than 10% difference
+            print("   💡 All matchers perform similarly - ensemble methods recommended")
+        elif gap > 0.3:  # More than 30% difference
+            print(f"   💡 Clear winner: {sorted_rankings[0][0]} significantly outperforms others")
+        else:
+            print("   💡 Moderate performance differences - ensemble can help")
+
+
+def analyze_pairwise_champions(all_pairwise_results: List[Dict]) -> Dict:
+    """Analyze pairwise comparison results and identify champion pairs."""
+    if not all_pairwise_results:
+        return {"error": "No pairwise results to analyze"}
+    
+    # Track performance by comparison type
+    comparison_performance = {}
+    comparison_types = ["GPT_vs_Embedding", "GPT_vs_Clustering", "Embedding_vs_Clustering"]
+    
+    for comp_type in comparison_types:
+        f1_scores = []
+        agreements = []
+        precisions = []
+        recalls = []
+        
+        for result in all_pairwise_results:
+            if comp_type in result["comparisons"]:
+                metrics = result["comparisons"][comp_type]
+                f1_scores.append(metrics.f1_score)
+                agreements.append(metrics.agreement_rate)
+                precisions.append(metrics.precision)
+                recalls.append(metrics.recall)
+        
+        if f1_scores:
+            comparison_performance[comp_type] = {
+                'avg_f1': sum(f1_scores) / len(f1_scores),
+                'avg_agreement': sum(agreements) / len(agreements),
+                'avg_precision': sum(precisions) / len(precisions),
+                'avg_recall': sum(recalls) / len(recalls),
+                'count': len(f1_scores)
+            }
+    
+    return comparison_performance
+
+def print_pairwise_champions(pairwise_performance: Dict):
+    """Print pairwise comparison champions and analysis."""
+    if 'error' in pairwise_performance:
+        print(f"❌ {pairwise_performance['error']}")
+        return
+    
+    if not pairwise_performance:
+        print("❌ No pairwise performance data available")
+        return
+    
+    print(f"\n🤝 PAIRWISE COMPARISON CHAMPIONS")
+    print("=" * 60)
+    
+    # Find champions by different metrics
+    f1_champion = max(pairwise_performance.items(), key=lambda x: x[1]['avg_f1'])
+    agreement_champion = max(pairwise_performance.items(), key=lambda x: x[1]['avg_agreement'])
+    precision_champion = max(pairwise_performance.items(), key=lambda x: x[1]['avg_precision'])
+    recall_champion = max(pairwise_performance.items(), key=lambda x: x[1]['avg_recall'])
+    
+    print(f"🏆 Best F1 Score:     {f1_champion[0].replace('_', ' ')} ({f1_champion[1]['avg_f1']:.3f})")
+    print(f"🤝 Best Agreement:    {agreement_champion[0].replace('_', ' ')} ({agreement_champion[1]['avg_agreement']:.3f})")
+    print(f"🎯 Best Precision:    {precision_champion[0].replace('_', ' ')} ({precision_champion[1]['avg_precision']:.3f})")
+    print(f"📊 Best Recall:       {recall_champion[0].replace('_', ' ')} ({recall_champion[1]['avg_recall']:.3f})")
+    
+    # Overall champion (based on F1 score)
+    overall_champion = f1_champion[0].replace('_', ' ')
+    print(f"\n👑 OVERALL PAIRWISE CHAMPION: {overall_champion}")
+    print(f"   F1: {f1_champion[1]['avg_f1']:.3f} | Agreement: {f1_champion[1]['avg_agreement']:.3f}")
+    
+    # Performance analysis
+    f1_scores = [perf['avg_f1'] for perf in pairwise_performance.values()]
+    best_f1 = max(f1_scores)
+    worst_f1 = min(f1_scores)
+    f1_gap = best_f1 - worst_f1
+    
+    print(f"\n📈 Pairwise Performance Analysis:")
+    print(f"   F1 Score Range: {worst_f1:.3f} - {best_f1:.3f} (gap: {f1_gap:.3f})")
+    
+    if f1_gap < 0.1:
+        print("   💡 All matcher pairs perform similarly")
+    elif f1_gap > 0.3:
+        print(f"   💡 Clear pairwise winner: {overall_champion}")
+    else:
+        print("   💡 Moderate differences between matcher pairs")
+    
+    # Detailed breakdown table
+    print(f"\n📋 Detailed Pairwise Performance:")
+    table_data = []
+    headers = ["Pair", "Avg F1", "Avg Precision", "Avg Recall", "Avg Agreement", "Datasets"]
+    
+    for comp_type, metrics in pairwise_performance.items():
+        table_data.append([
+            comp_type.replace("_", " "),
+            f"{metrics['avg_f1']:.3f}",
+            f"{metrics['avg_precision']:.3f}",
+            f"{metrics['avg_recall']:.3f}",
+            f"{metrics['avg_agreement']:.3f}",
+            metrics['count']
+        ])
+    
+    print(tabulate(table_data, headers=headers, tablefmt="fancy_grid"))
+
+
+def analyze_triple_champions(all_triple_results: List[Dict]) -> Dict:
+    """Analyze triple comparison results and identify champion performance patterns."""
+    if not all_triple_results:
+        return {"error": "No triple results to analyze"}
+    
+    # Track different success patterns
+    pattern_stats = {
+        'all_correct': 0,
+        'two_correct': 0, 
+        'one_correct': 0,
+        'none_correct': 0,
+        'all_agree': 0,
+        'majority_correct': 0,
+        'total_columns': 0
+    }
+    
+    # Track ensemble performance
+    ensemble_stats = {
+        'majority_vote_correct': 0,
+        'all_agree_and_correct': 0,
+        'best_individual_vs_majority': {'individual': 0, 'majority': 0}
+    }
+    
+    # Track individual contributions to success
+    individual_contributions = {
+        'gpt_in_success': 0,
+        'embedding_in_success': 0, 
+        'clustering_in_success': 0
+    }
+    
+    total_successful_cases = 0  # Cases where at least 2/3 are correct
+    
+    for result in all_triple_results:
+        if 'error' in result:
+            continue
+            
+        # Aggregate pattern statistics
+        patterns = result.get('patterns', {})
+        pattern_stats['all_correct'] += len(patterns.get('all_correct', []))
+        pattern_stats['two_correct'] += len(patterns.get('two_correct', []))
+        pattern_stats['one_correct'] += len(patterns.get('one_correct', []))
+        pattern_stats['none_correct'] += len(patterns.get('none_correct', []))
+        pattern_stats['majority_correct'] += len(patterns.get('majority_correct', []))
+        
+        # Analyze detailed results
+        for detail in result.get('detailed_results', []):
+            pattern_stats['total_columns'] += 1
+            
+            if detail.get('all_agree', False):
+                pattern_stats['all_agree'] += 1
+                
+            # Count successful cases (2/3 or 3/3 correct)
+            correct_count = sum([
+                detail.get('gpt_correct', False),
+                detail.get('embedding_correct', False), 
+                detail.get('clustering_correct', False)
+            ])
+            
+            if correct_count >= 2:
+                total_successful_cases += 1
+                
+                # Track individual contributions to success
+                if detail.get('gpt_correct', False):
+                    individual_contributions['gpt_in_success'] += 1
+                if detail.get('embedding_correct', False):
+                    individual_contributions['embedding_in_success'] += 1
+                if detail.get('clustering_correct', False):
+                    individual_contributions['clustering_in_success'] += 1
+            
+            # Majority vote performance  
+            if detail.get('majority_correct', False):
+                ensemble_stats['majority_vote_correct'] += 1
+                
+            # All agree and correct cases
+            if detail.get('all_agree', False) and correct_count == 3:
+                ensemble_stats['all_agree_and_correct'] += 1
+    
+    # Calculate percentages
+    total_cols = pattern_stats['total_columns']
+    if total_cols > 0:
+        # Create a copy of keys to avoid "dictionary changed size during iteration" error
+        pattern_keys = list(pattern_stats.keys())
+        for key in pattern_keys:
+            if key != 'total_columns':
+                pattern_stats[f'{key}_rate'] = pattern_stats[key] / total_cols
+        
+        ensemble_stats['majority_vote_accuracy'] = ensemble_stats['majority_vote_correct'] / total_cols
+        ensemble_stats['consensus_accuracy'] = ensemble_stats['all_agree_and_correct'] / total_cols
+        
+        # Individual contribution rates in successful cases
+        if total_successful_cases > 0:
+            # Create a copy of keys to avoid iteration error
+            contrib_keys = list(individual_contributions.keys())
+            for key in contrib_keys:
+                individual_contributions[f'{key}_rate'] = individual_contributions[key] / total_successful_cases
+    
+    return {
+        'pattern_stats': pattern_stats,
+        'ensemble_stats': ensemble_stats,
+        'individual_contributions': individual_contributions,
+        'total_successful_cases': total_successful_cases
+    }
+
+def print_triple_champions(triple_analysis: Dict):
+    """Print triple comparison champions and ensemble analysis."""
+    if 'error' in triple_analysis:
+        print(f"❌ {triple_analysis['error']}")
+        return
+        
+    pattern_stats = triple_analysis.get('pattern_stats', {})
+    ensemble_stats = triple_analysis.get('ensemble_stats', {})
+    contributions = triple_analysis.get('individual_contributions', {})
+    
+    total_cols = pattern_stats.get('total_columns', 0)
+    if total_cols == 0:
+        print("❌ No triple comparison data available")
+        return
+    
+    print(f"\n🎯 TRIPLE COMPARISON CHAMPIONS & ENSEMBLE ANALYSIS")
+    print("=" * 70)
+    
+    # Pattern performance
+    print(f"📊 Collaboration Success Patterns (across {total_cols} predictions):")
+    print(f"   🎯 Perfect Harmony (3/3 correct): {pattern_stats.get('all_correct_rate', 0):.1%}")
+    print(f"   🤝 Strong Majority (2/3 correct): {pattern_stats.get('two_correct_rate', 0):.1%}") 
+    print(f"   ⚡ Solo Success (1/3 correct):    {pattern_stats.get('one_correct_rate', 0):.1%}")
+    print(f"   💥 Total Failure (0/3 correct):  {pattern_stats.get('none_correct_rate', 0):.1%}")
+    print(f"   🔄 Full Agreement Rate:          {pattern_stats.get('all_agree_rate', 0):.1%}")
+    
+    # Ensemble performance  
+    majority_acc = ensemble_stats.get('majority_vote_accuracy', 0)
+    consensus_acc = ensemble_stats.get('consensus_accuracy', 0)
+    
+    print(f"\n🏆 ENSEMBLE CHAMPIONS:")
+    print(f"   👑 Majority Vote Accuracy:       {majority_acc:.1%}")
+    print(f"   🎪 Consensus (All Agree) Accuracy: {consensus_acc:.1%}")
+    
+    # Determine champion approach
+    individual_max = max([
+        pattern_stats.get('all_correct_rate', 0),
+        pattern_stats.get('two_correct_rate', 0)
+    ])
+    
+    if majority_acc > individual_max:
+        print(f"   🏅 CHAMPION APPROACH: Majority Vote Ensemble")
+        print(f"     Outperforms individual patterns by {(majority_acc - individual_max):.1%}")
+    else:
+        print(f"   🏅 CHAMPION APPROACH: Individual Matcher Performance")
+        print(f"     Best individual pattern: {individual_max:.1%}")
+    
+    # Individual contributions to success
+    total_successful = triple_analysis.get('total_successful_cases', 0)
+    if total_successful > 0:
+        print(f"\n🌟 Success Contribution Analysis (in {total_successful} successful cases):")
+        gpt_contrib = contributions.get('gpt_in_success_rate', 0)
+        emb_contrib = contributions.get('embedding_in_success_rate', 0) 
+        clust_contrib = contributions.get('clustering_in_success_rate', 0)
+        
+        # Sort contributors
+        contrib_list = [
+            ('GPT', gpt_contrib),
+            ('Embedding', emb_contrib), 
+            ('Clustering', clust_contrib)
+        ]
+        contrib_list.sort(key=lambda x: x[1], reverse=True)
+        
+        for i, (matcher, rate) in enumerate(contrib_list, 1):
+            medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉"
+            print(f"   {medal} {matcher}: Contributes to {rate:.1%} of successful cases")
+    
+    # Recommendations
+    print(f"\n💡 TRIPLE COMPARISON INSIGHTS:")
+    if pattern_stats.get('all_agree_rate', 0) > 0.7:
+        print("   🤝 High agreement rate - matchers are consistent")
+    elif pattern_stats.get('all_agree_rate', 0) < 0.3:
+        print("   🔀 Low agreement rate - matchers are diverse (good for ensembles)")
+    
+    if majority_acc > 0.8:
+        print("   ✨ Majority vote is highly effective - use ensemble approaches")
+    elif majority_acc < 0.5:
+        print("   ⚠️ Consider individual matcher selection or weighted ensembles")
+
 
 async def main_test(args: argparse.Namespace):
     """
@@ -596,7 +942,7 @@ async def main_test(args: argparse.Namespace):
                 gpt_predictions=predicted_mapping,
                 embedding_predictions=embed_predicted,
                 clustering_predictions=cluster_predicted,
-                ground_truth=real_gt_mapping,  # Use real ground truth if available
+                ground_truth=None,  # No ground truth = pure matcher agreement
                 source_table=source_table,
                 target_table=target_table
             )
@@ -803,9 +1149,36 @@ async def main_test(args: argparse.Namespace):
                 weight_display
             ])
 
-    print(f"\n🔄 STEP 2 COMPLETE: Creating Global Triple Comparison Summary")
+    print(f"\n🔄 STEP 3 COMPLETE: Creating Global Triple Comparison Summary")
     print("=" * 80)
-    create_triple_comparison_summary(all_triple_results)
+    
+    if all_triple_results:
+        global_triple_summary = create_triple_comparison_summary(all_triple_results)
+        print_triple_comparison_summary(global_triple_summary)
+        
+        # NEW: Individual Matcher Performance Ranking
+        individual_rankings = create_individual_matcher_ranking(all_triple_results)
+        total_predictions = sum(len(result.get('detailed_results', [])) 
+                              for result in all_triple_results 
+                              if 'error' not in result)
+        print_individual_matcher_ranking(individual_rankings, total_predictions)
+        
+        # NEW: Triple Champions & Ensemble Analysis
+        triple_analysis = analyze_triple_champions(all_triple_results)
+        print_triple_champions(triple_analysis)
+        
+        # NEW: Dataset Type Breakdown Analysis
+        print(f"\n📊 DATASET TYPE BREAKDOWN ANALYSIS")
+        print("=" * 80)
+        dataset_breakdown = create_dataset_type_breakdown([], all_triple_results)
+        table_data = print_dataset_type_breakdown_table(dataset_breakdown)
+        
+        # Export LaTeX table for thesis
+        export_latex_breakdown_table(table_data, "dataset_breakdown_harmonize")
+        print(f"✅ LaTeX table exported to output/dataset_breakdown_harmonize.tex")
+        
+    else:
+        print("⚠️ No triple comparison results to summarize")
 
     # NEW: Create and display pairwise comparison summary
     print(f"\n🔄 STEP 2 COMPLETE: Creating Global Pairwise Comparison Summary")
@@ -819,6 +1192,10 @@ async def main_test(args: argparse.Namespace):
             all_pairwise_results, 
             "global_pairwise_comparison_results"
         )
+        
+        # NEW: Analyze and display pairwise champions
+        pairwise_performance = analyze_pairwise_champions(all_pairwise_results)
+        print_pairwise_champions(pairwise_performance)
         
         print(f"✅ Pairwise comparison summary exported for {len(all_pairwise_results)} dataset pairs")
     else:
@@ -954,7 +1331,76 @@ async def main_test(args: argparse.Namespace):
     else:
         print("⚠️ No target schema results to aggregate")
 
+    # FINAL COMPREHENSIVE SUMMARY
+    print(f"\n" + "🎉" + "="*78 + "🎉")
+    print("🏁 HAMONIZE EVALUATION COMPLETE - FINAL SUMMARY")
+    print("🎉" + "="*78 + "🎉")
     
+    # Summary statistics
+    total_datasets = len([r for r in all_triple_results if 'error' not in r])
+    total_pairwise = len(all_pairwise_results)
+    
+    print(f"📊 Evaluation Scope:")
+    print(f"   • {total_datasets} dataset pairs evaluated")
+    print(f"   • {total_pairwise} pairwise comparisons performed")
+    print(f"   • {len(results)} schema matching tasks completed")
+    
+    if all_triple_results and individual_rankings:
+        # Show complete individual matcher performance
+        sorted_individual = sorted(individual_rankings.items(), key=lambda x: x[1], reverse=True)
+        print(f"\n🏆 Individual Matcher Performance:")
+        for i, (matcher, accuracy) in enumerate(sorted_individual, 1):
+            medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉"
+            print(f"   {medal} {matcher}: {accuracy:.1%}")
+        
+        # Show pairwise champion with all pairs
+        if all_pairwise_results:
+            pairwise_perf = analyze_pairwise_champions(all_pairwise_results)
+            if pairwise_perf and 'error' not in pairwise_perf:
+                sorted_pairs = sorted(pairwise_perf.items(), key=lambda x: x[1]['avg_f1'], reverse=True)
+                print(f"\n🤝 Pairwise Agreement Performance:")
+                for i, (pair_name, metrics) in enumerate(sorted_pairs, 1):
+                    medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉"
+                    print(f"   {medal} {pair_name.replace('_', ' ')}: F1 {metrics['avg_f1']:.3f}")
+        
+        # Show ensemble performance
+        triple_analysis = analyze_triple_champions(all_triple_results)
+        if triple_analysis and 'error' not in triple_analysis:
+            ensemble_stats = triple_analysis.get('ensemble_stats', {})
+            majority_acc = ensemble_stats.get('majority_vote_accuracy', 0)
+            consensus_acc = ensemble_stats.get('consensus_accuracy', 0)
+            
+            print(f"\n🎯 Ensemble Performance:")
+            print(f"   🏆 Majority Vote: {majority_acc:.1%}")
+            print(f"   🤝 Consensus (All Agree): {consensus_acc:.1%}")
+        
+        # Overall champion summary (compact)
+        champion_individual = max(individual_rankings.items(), key=lambda x: x[1])
+        print(f"\n👑 OVERALL CHAMPIONS:")
+        print(f"   🏆 Best Matcher: {champion_individual[0]} ({champion_individual[1]:.1%})")
+        
+        if all_pairwise_results and pairwise_perf:
+            f1_champion = max(pairwise_perf.items(), key=lambda x: x[1]['avg_f1'])
+            print(f"   🤝 Best Pair: {f1_champion[0].replace('_', ' ')} (F1: {f1_champion[1]['avg_f1']:.3f})")
+        
+        if triple_analysis and 'error' not in triple_analysis:
+            print(f"   🎯 Best Ensemble: Majority Vote ({majority_acc:.1%})")
+        
+        # Best ensemble recommendation
+        print(f"\n✨ Recommended Approach: Ensemble methods")
+        print(f"   Use Majority Vote for robust predictions")
+        print(f"   Use Weighted Ensemble for confidence-aware results")
+    
+    print(f"\n📁 Generated Outputs:")
+    print(f"   📊 Pairwise comparison results: output/global_pairwise_comparison_results.*")
+    print(f"   🔀 Triple comparison summary: output/triple_comparison_global_summary.json")
+    print(f"   🏆 Individual matcher rankings: displayed above")
+    print(f"   📈 Cross-dataset aggregation: output/CrossDataset_Aggregation_Summary.*")
+    print(f"   📋 Detailed results: output/real_data_detailed_matches.json")
+    print(f"   🎯 LaTeX tables: output/*.tex files")
+    
+    print(f"\n✨ Analysis Complete! All results exported for thesis integration.")
+    print("🎉" + "="*78 + "🎉\n")
 
 
 
