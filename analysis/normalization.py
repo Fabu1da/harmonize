@@ -15,7 +15,7 @@ def load_data():
 
     # Build absolute paths to the JSON files
     coma_path = os.path.normpath(os.path.join(base_dir, '..', 'assets', 'output', 'matches.json'))
-    ham_path  = os.path.normpath(os.path.join(base_dir, '..', 'output', 'real_data_detailed_matches.json'))
+    ham_path  = os.path.normpath(os.path.join(base_dir, '..', 'output', 'real_data_detailed_matches 2.json'))
     gt_path  = os.path.normpath(os.path.join(base_dir, '..', 'expected'))
 
     # Load COMA results (simple matches) and fix European decimal format
@@ -102,69 +102,37 @@ def normalize_coma(coma_data, run_id="COMA"):
     scores = {}
     
     for item in coma_data:
-        # Check if this is a column-level match (has column name) or table-level match
-        source_parts = item['source'].split('.')
-        target_parts = item['target'].split('.')
+        # Extract information from the new COMA format
+        source_table = item['source_table']
+        source_column = item['source_column']
+        target_table = item['target_table']
+        target_column = item['target_column']
         
-        # Skip table-level matches (no column specified)
-        if len(source_parts) == 1 or len(target_parts) == 1:
-            continue
-            
-        # Extract column names
-        source_column = source_parts[-1]
-        target_column = target_parts[-1]
-        
-        # Extract table names from the path
-        source_path = source_parts[-2]
-        source_path_parts = source_path.split('_')
-        
-        # Find the table name by looking for the pattern ending with "source"
-        source_table = None
-        for i in range(len(source_path_parts)):
-            if source_path_parts[i] == 'source' and i + 1 < len(source_path_parts):
-                # Everything after 'source' is the table name
-                remaining_parts = source_path_parts[i+1:]
-                source_table = '_'.join(remaining_parts)
-                break
-        
-        # Extract target table name
-        target_path = target_parts[-2]
-        target_path_parts = target_path.split('_')
-        
-        target_table = None
-        for i in range(len(target_path_parts)):
-            if target_path_parts[i] == 'target' and i + 1 < len(target_path_parts):
-                # Everything after 'target' is the table name
-                remaining_parts = target_path_parts[i+1:]
-                target_table = '_'.join(remaining_parts)
-                break
-        
-        # Clean up target table name - remove "cvs_" prefix if present
-        if target_table and target_table.startswith('cvs_'):
-            target_table = target_table[4:]  # Remove "cvs_" prefix
-        
-        # Skip if we couldn't extract table names
-        if source_table is None or target_table is None:
-            continue
-            
+        # print Debug
+        print(f"COMA Item - Source: {source_table}.{source_column}, Target: {target_table}.{target_column}, Similarity: {item['similarity']}")
+
+        # COMA already provides the correct table names with _source and _target suffixes
+        # that match the ground truth format, so use them directly
+        source_table_name = source_table
+        target_table_name = target_table
         
         # Create pair
         pair = Pair(
-            source_table=source_table,
+            source_table=source_table_name,
             source_column=source_column,
-            target_table=target_table,
+            target_table=target_table_name,
             target_column=target_column
         )
         
         # Convert similarity score (handle European decimal format)
-        similarity_str = item['similarity']
-        # if ',' in similarity_str:
-        #     similarity = float(similarity_str.replace(',', '.'))
-        # else:
-        #     similarity = float(similarity_str)
+        similarity = item['similarity']
+        if isinstance(similarity, str) and ',' in similarity:
+            similarity = float(similarity.replace(',', '.'))
+        else:
+            similarity = float(similarity)
         
         pairs.append(pair)
-        scores[pair] = similarity_str
+        scores[pair] = similarity
     return Run(run_id=run_id, pairs=pairs, scores=scores)
 
 
