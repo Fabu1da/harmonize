@@ -16,7 +16,7 @@ def create_thesis_visualizations():
     # Data from analysis
     algorithms = ['GPT', 'EMBED', 'CLUSTER', 'MAJORITY', 'WEIGHTED']
     accuracies = [0.731, 0.723, 0.723, 0.723, 0.723]
-    match_counts = [163, 886]  # COMA, Hamonize
+    match_counts = [163, 886]  # COMA, harmonize
     
     # Set style
     plt.rcParams['figure.figsize'] = (12, 8)
@@ -26,7 +26,7 @@ def create_thesis_visualizations():
     plt.figure(figsize=(12, 8))
     colors = ['#2E86AB', '#A23B72', '#F18F01', '#C73E1D', '#7209B7']
     bars = plt.bar(algorithms, accuracies, color=colors, alpha=0.8, edgecolor='black')
-    plt.title('Hamonize Algorithm Performance Comparison', fontsize=16, fontweight='bold', pad=20)
+    plt.title('harmonize Algorithm Performance Comparison', fontsize=16, fontweight='bold', pad=20)
     plt.ylabel('Accuracy', fontsize=14)
     plt.xlabel('Algorithm', fontsize=14)
     plt.ylim(0.7, 0.75)
@@ -43,7 +43,7 @@ def create_thesis_visualizations():
     
     # Figure 2: Scale Comparison
     plt.figure(figsize=(10, 6))
-    methods = ['COMA', 'Hamonize']
+    methods = ['COMA', 'harmonize']
     colors_scale = ['#FF6B6B', '#4ECDC4']
     bars = plt.bar(methods, match_counts, color=colors_scale, alpha=0.8, edgecolor='black', linewidth=2)
     plt.title('Schema Matching Scale Comparison', fontsize=16, fontweight='bold', pad=20)
@@ -105,7 +105,7 @@ def create_thesis_visualizations():
     ax1.grid(axis='y', alpha=0.3)
     
     # Match counts
-    bars2 = ax2.bar(['COMA', 'Hamonize'], match_counts, color=colors_scale, alpha=0.8)
+    bars2 = ax2.bar(['COMA', 'harmonize'], match_counts, color=colors_scale, alpha=0.8)
     ax2.set_title('Total Matches', fontweight='bold', fontsize=14)
     ax2.set_ylabel('Number of Matches')
     for bar, count in zip(bars2, match_counts):
@@ -114,8 +114,8 @@ def create_thesis_visualizations():
     ax2.grid(axis='y', alpha=0.3)
     
     # Ground truth coverage
-    gt_counts = [40, 642]  # Total ground truth mappings, Hamonize validated
-    bars3 = ax3.bar(['Total Ground Truth', 'Hamonize Validated'], gt_counts, 
+    gt_counts = [40, 642]  # Total ground truth mappings, harmonize validated
+    bars3 = ax3.bar(['Total Ground Truth', 'harmonize Validated'], gt_counts, 
                     color=['lightgray', '#4ECDC4'], alpha=0.8)
     ax3.set_title('Ground Truth Coverage', fontweight='bold', fontsize=14)
     ax3.set_ylabel('Number of Mappings')
@@ -127,13 +127,13 @@ def create_thesis_visualizations():
     # Performance metrics summary
     metrics = ['Accuracy', 'Scale', 'Validation', 'Granularity']
     coma_scores = [0, 0.18, 0, 0.3]  # Normalized scores
-    hamonize_scores = [0.73, 1.0, 1.0, 1.0]  # Normalized scores
+    harmonize_scores = [0.73, 1.0, 1.0, 1.0]  # Normalized scores
     
     x = np.arange(len(metrics))
     width = 0.35
     
     bars4a = ax4.bar(x - width/2, coma_scores, width, label='COMA', color='#FF6B6B', alpha=0.8)
-    bars4b = ax4.bar(x + width/2, hamonize_scores, width, label='Hamonize', color='#4ECDC4', alpha=0.8)
+    bars4b = ax4.bar(x + width/2, harmonize_scores, width, label='harmonize', color='#4ECDC4', alpha=0.8)
     
     ax4.set_title('Overall Performance Comparison', fontweight='bold', fontsize=14)
     ax4.set_ylabel('Normalized Score')

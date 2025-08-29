@@ -218,14 +218,14 @@ def benchmark():
     print("\n=== CREATING VISUALIZATIONS ===")
     
     # Load data again for visualization
-    coma_data, hamonize_data = load_data()
+    coma_data, harmonize_data = load_data()
     gt_data = load_ground_truth()
     
     # ---------- 1) Load & normalize ----------
     print("\n=== STEP 1: NORMALIZATION ===")
     G = build_gt_set(gt_data)
     coma_run = normalize_coma(coma_data, run_id="COMA")
-    harm_runs = normalize_harmonize(hamonize_data)
+    harm_runs = normalize_harmonize(harmonize_data)
     harm_max_run = aggregate_max_by_pair(harm_runs, run_id="HARMONIZE-max")
 
     runs = [coma_run] + harm_runs + [harm_max_run]

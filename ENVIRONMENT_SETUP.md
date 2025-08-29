@@ -24,7 +24,7 @@
 ### Thesis Analysis
 
 - `analysis/algorithm_accuracy.png` - Algorithm performance comparison
-- `analysis/scale_comparison.png` - COMA vs Hamonize scale difference
+- `analysis/scale_comparison.png` - COMA vs harmonize scale difference
 - `analysis/precision_analysis.png` - Precision vs threshold analysis
 - `analysis/comprehensive_dashboard.png` - Complete comparison dashboard
 
@@ -36,7 +36,7 @@
 
 ## Key Results Ready for Thesis
 
-- **Scale Advantage**: 5.4x more matches with Hamonize (886 vs 163)
+- **Scale Advantage**: 5.4x more matches with harmonize (886 vs 163)
 - **Validated Accuracy**: 72-73% ground truth coverage
 - **Best Algorithm**: GPT with 73.1% accuracy
 - **Problem with COMA**: 35.6% uninformative self-matches
@@ -53,7 +53,7 @@ cd analysis && python3 final_comparison.py
 # Generate visualizations
 python3 thesis_visualizations.py
 
-# Run Hamonize application
+# Run harmonize application
 python3 main.py --help
 ```
 

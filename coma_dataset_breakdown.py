@@ -27,7 +27,7 @@ from evaluation import compute_candidate_coverage, eval_set_based, eval_ranking_
 
 def load_coma_results() -> List[Dict]:
     """Load COMA evaluation results from the bridge output"""
-    results_path = "/Users/fabu1da/Desktop/schoolstuff/mastersThesis/Project/hamonize/assets/output/matches.json"
+    results_path = "/Users/fabu1da/Desktop/schoolstuff/mastersThesis/Project/harmonize/assets/output/matches.json"
     
     if not os.path.exists(results_path):
         raise FileNotFoundError(f"COMA results not found at {results_path}. Please run COMA evaluation first.")

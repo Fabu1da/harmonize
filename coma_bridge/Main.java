@@ -17,8 +17,8 @@ import java.util.Scanner;
 public class Main {
     public static void main(String[] args) {
         // Optional: pass source/target dirs as args
-        String srcPath = (args.length >= 1) ? args[0] : "/Users/fabu1da/Desktop/schoolstuff/mastersThesis/Project/hamonize/assets/source";
-        String trgPath = (args.length >= 2) ? args[1] : "/Users/fabu1da/Desktop/schoolstuff/mastersThesis/Project/hamonize/assets/target/cvs";
+        String srcPath = (args.length >= 1) ? args[0] : "/Users/fabu1da/Desktop/schoolstuff/mastersThesis/Project/harmonize/assets/source";
+        String trgPath = (args.length >= 2) ? args[1] : "/Users/fabu1da/Desktop/schoolstuff/mastersThesis/Project/harmonize/assets/target/cvs";
 
         File sourceDir = new File(srcPath);
         File targetDir = new File(trgPath);
@@ -73,7 +73,7 @@ public class Main {
         }
 
        // Write to JSON file
-        try (FileWriter fw = new FileWriter("/Users/fabu1da/Desktop/schoolstuff/mastersThesis/Project/hamonize/assets/output/matches.json")) {
+        try (FileWriter fw = new FileWriter("/Users/fabu1da/Desktop/schoolstuff/mastersThesis/Project/harmonize/assets/output/matches.json")) {
             fw.write("[");
             for (int i = 0; i < allMatches.size(); i++) {
                 Map<String, Object> m = allMatches.get(i);

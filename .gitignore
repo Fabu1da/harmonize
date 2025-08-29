@@ -127,3 +127,6 @@ Jupyter_env
 *.csv
 *.iwa
 dump
+*.md
+todo/
+*.tex

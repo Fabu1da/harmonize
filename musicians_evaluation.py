@@ -63,7 +63,7 @@ async def evaluate_musicians_matching():
     print("=" * 60)
     
     # File paths
-    base_path = Path("/Users/fabu1da/Desktop/schoolstuff/mastersThesis/Project/hamonize/assets")
+    base_path = Path("/Users/fabu1da/Desktop/schoolstuff/mastersThesis/Project/harmonize/assets")
     source_path = base_path / "source" / "musicians_semjoinable_source.csv"
     target_path = base_path / "target" / "musicians_semjoinable_target.json"
     expected_path = base_path / "expected" / "musicians_semjoinable_mapping.json"

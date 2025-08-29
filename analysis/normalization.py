@@ -25,12 +25,12 @@ def load_data():
         content = re.sub(r'"similarity":(\d+),(\d+)', r'"similarity":\1.\2', content)
         coma_data = json.loads(content)
 
-    # Load Hamonize results (detailed matches)
+    # Load harmonize results (detailed matches)
     with open(ham_path, 'r') as f:
-        hamonize_data = json.load(f)
+        harmonize_data = json.load(f)
 
 
-    return coma_data, hamonize_data
+    return coma_data, harmonize_data
 
 
 # Load ground truth data
@@ -137,7 +137,7 @@ def normalize_coma(coma_data, run_id="COMA"):
 
 
 def normalize_harmonize(harmonize_data):
-    """Normalize Hamonize data format, returns list of runs"""
+    """Normalize harmonize data format, returns list of runs"""
     embed_pairs = []
     embed_scores = {}
     cluster_pairs = []

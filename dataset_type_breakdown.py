@@ -1,5 +1,5 @@
 """
-Dataset Type Breakdown Analysis for Hamonize
+Dataset Type Breakdown Analysis for harmonize
 Creates tables showing performance breakdown by dataset type (Joinable, Sem-joinable, Unionable, View-union)
 for thesis analysis and LaTeX table generation.
 """
@@ -50,8 +50,8 @@ def create_dataset_type_breakdown(all_results: List[Dict], all_triple_results: L
                 dataset_type = type_name
                 break
         
-        # Debug print to see classification
-        print(f"DEBUG: Source: '{source_table}' | Target: '{target_table}' → Type: '{dataset_type}'")
+        # # Debug print to see classification
+        # print(f"DEBUG: Source: '{source_table}' | Target: '{target_table}' → Type: '{dataset_type}'")
         
         if dataset_type not in breakdown:
             breakdown[dataset_type] = {
@@ -83,6 +83,7 @@ def create_dataset_type_breakdown(all_results: List[Dict], all_triple_results: L
         gpt_coverage = sum(1 for detail in detailed_results if detail.get('gpt_prediction') not in [None, '', '—'])
         embed_coverage = sum(1 for detail in detailed_results if detail.get('embedding_prediction') not in [None, '', '—'])
         cluster_coverage = sum(1 for detail in detailed_results if detail.get('clustering_prediction') not in [None, '', '—'])
+        majority_coverage = sum(1 for detail in detailed_results if detail.get('majority_prediction') not in [None, '', '—'])
         
         # Store results
         breakdown[dataset_type]['datasets'].append(f"{source_table} → {target_table}")
@@ -93,7 +94,7 @@ def create_dataset_type_breakdown(all_results: List[Dict], all_triple_results: L
         breakdown[dataset_type]['cluster_accuracies'].append(cluster_correct / total_columns if total_columns > 0 else 0)
         breakdown[dataset_type]['cluster_coverages'].append(cluster_coverage / total_columns if total_columns > 0 else 0)
         breakdown[dataset_type]['majority_accuracies'].append(majority_correct / total_columns if total_columns > 0 else 0)
-        breakdown[dataset_type]['majority_coverages'].append(1.0)  # Majority vote covers all columns
+        breakdown[dataset_type]['majority_coverages'].append(majority_coverage / total_columns if total_columns > 0 else 0)
     
     return breakdown
 

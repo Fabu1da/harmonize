@@ -129,6 +129,49 @@ def calculate_triple_comparison_metrics(
     # Calculate summary statistics
     total_columns = len(detailed_results)
     
+    # Calculate P/R/F1 for each matcher using the same logic as pairwise comparison
+    def calculate_matcher_metrics(predictions_dict, ground_truth_dict, matcher_name):
+        """Calculate P/R/F1 for a single matcher against ground truth"""
+        # Filter valid predictions (same as pairwise)
+        valid_predictions = {k: v for k, v in predictions_dict.items() if v[0] is not None and v[0] != "—"}
+        common_columns = set(valid_predictions.keys()) & set(ground_truth_dict.keys())
+        
+        true_positives = 0
+        false_positives = 0 
+        false_negatives = 0
+        
+        for col in common_columns:
+            true_match = ground_truth_dict.get(col)
+            predicted_match = valid_predictions.get(col, (None, 0.0))[0]
+            
+            if predicted_match == true_match and true_match is not None:
+                true_positives += 1
+            elif predicted_match is not None and predicted_match != true_match:
+                false_positives += 1
+            elif true_match is not None and (predicted_match is None or predicted_match != true_match):
+                false_negatives += 1
+        
+        # Same calculation as pairwise
+        precision = true_positives / (true_positives + false_positives) if (true_positives + false_positives) > 0 else 0.0
+        recall = true_positives / (true_positives + false_negatives) if (true_positives + false_negatives) > 0 else 0.0
+        f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
+        
+        return precision, recall, f1_score, true_positives, false_positives, false_negatives
+    
+    # Calculate for each individual matcher
+    gpt_p, gpt_r, gpt_f1, gpt_tp, gpt_fp, gpt_fn = calculate_matcher_metrics(gpt_predictions, ground_truth, "GPT")
+    emb_p, emb_r, emb_f1, emb_tp, emb_fp, emb_fn = calculate_matcher_metrics(embedding_predictions, ground_truth, "Embedding")
+    clust_p, clust_r, clust_f1, clust_tp, clust_fp, clust_fn = calculate_matcher_metrics(clustering_predictions, ground_truth, "Clustering")
+    
+    # Calculate for majority vote (create majority predictions dict)
+    majority_predictions = {}
+    for result in detailed_results:
+        col = result['target_column']
+        majority_pred = result['majority_prediction']
+        majority_predictions[col] = (majority_pred, 1.0)  # Use confidence 1.0 for majority
+    
+    maj_p, maj_r, maj_f1, maj_tp, maj_fp, maj_fn = calculate_matcher_metrics(majority_predictions, ground_truth, "Majority")
+    
     summary_stats = {
         'total_columns': total_columns,
         'all_correct_rate': len(patterns['all_correct']) / total_columns if total_columns > 0 else 0,
@@ -138,6 +181,23 @@ def calculate_triple_comparison_metrics(
         'agreement_rate': len([r for r in detailed_results if r['all_agree']]) / total_columns if total_columns > 0 else 0,
         'agreement_accuracy': len(patterns['all_agree_correct']) / len([r for r in detailed_results if r['all_agree']]) if len([r for r in detailed_results if r['all_agree']]) > 0 else 0,
         'majority_accuracy': len(patterns['majority_correct']) / total_columns if total_columns > 0 else 0,
+        # Add P/R/F1 metrics
+        'gpt_precision': gpt_p,
+        'gpt_recall': gpt_r,
+        'gpt_f1_score': gpt_f1,
+        'embedding_precision': emb_p,
+        'embedding_recall': emb_r,
+        'embedding_f1_score': emb_f1,
+        'clustering_precision': clust_p,
+        'clustering_recall': clust_r,
+        'clustering_f1_score': clust_f1,
+        'majority_precision': maj_p,
+        'majority_recall': maj_r,
+        'majority_f1_score': maj_f1,
+        # Add combined/average metrics
+        'combined_precision': (gpt_p + emb_p + clust_p) / 3,
+        'combined_recall': (gpt_r + emb_r + clust_r) / 3,
+        'combined_f1_score': (gpt_f1 + emb_f1 + clust_f1) / 3,
     }
     
     return {
@@ -165,6 +225,13 @@ def print_triple_comparison_table(triple_results: Dict[str, Any], source_table: 
     print(f"   Agreement Rate: {stats['agreement_rate']:.1%}")
     print(f"   Agreement Accuracy: {stats['agreement_accuracy']:.1%}")
     print(f"   Majority Vote Accuracy: {stats['majority_accuracy']:.1%}")
+    
+    # Display P/R/F1 metrics (combined average)
+    print(f"\n📈 Combined Matcher Performance:")
+    print(f"   Average:    P={stats.get('combined_precision', 0):.3f}, R={stats.get('combined_recall', 0):.3f}, F1={stats.get('combined_f1_score', 0):.3f}")
+    print(f"\n🗳️ Ensemble Performance:")
+    print(f"   Majority Vote: P={stats.get('majority_precision', 0):.3f}, R={stats.get('majority_recall', 0):.3f}, F1={stats.get('majority_f1_score', 0):.3f}")
+    
     
     # Detailed table
     table_data = []
@@ -198,6 +265,14 @@ def print_triple_comparison_table(triple_results: Dict[str, Any], source_table: 
     from tabulate import tabulate
     print(f"\n📋 Detailed Triple Comparison:")
     print(tabulate(table_data, headers=headers, tablefmt="grid"))
+    
+    # P/R/F1 Summary Table (single combined row)
+    print(f"\n📊 Combined Precision, Recall, F1-Score:")
+    metrics_table_data = [
+        ["Combined Average", f"{stats.get('combined_precision', 0):.3f}", f"{stats.get('combined_recall', 0):.3f}", f"{stats.get('combined_f1_score', 0):.3f}"]
+    ]
+    metrics_headers = ["Matcher", "Precision", "Recall", "F1-Score"]
+    print(tabulate(metrics_table_data, headers=metrics_headers, tablefmt="grid"))
 
 def run_triple_comparison(
     gpt_predictions: Dict[str, Tuple[str, float]],
@@ -504,14 +579,9 @@ def _calculate_overall_averages(comparison_results: List[Dict]):
                     len(precisions)
                 ])
         
-        headers = ["Comparison", "Avg Precision", "Avg Recall", "Avg F1", "Avg Agreement", "N Datasets"]
+      
         
-        print(f"\n🎯 OVERALL AVERAGES ACROSS ALL DATASETS")
-        print("=" * 70)
-        print(tabulate(averages_table, headers=headers, tablefmt="fancy_grid"))
-        
-        return averages_table, headers
-
+        return averages_table
 
 def run_complete_pairwise_analysis(
     datasets: List[Dict],

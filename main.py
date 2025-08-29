@@ -1,22 +1,30 @@
 #!/usr/bin/env python
 """
-Hamonize: Schema Matching and Data Harmonization System
+harmonize: Schema Matching and Data Harmonization System
 Main entry point for the system providing schema matching capabilities using
 GPT, embedding-based, and clustering-based approaches with pairwise comparison analysis.
 """
 
 from dotenv import load_dotenv
+
+from core.run.global_sumary import generate_global_summaries
+from core.run.single_source import process_single_source_target_pair
+
+from core.utils.comprehensive_summary import print_final_comprehensive_summary
+from core.utils.data import load_gpt_calibrator
+from core.utils.final_summary_tables import generate_final_summary_tables
+from core.utils.save_calibrator import train_and_save_calibrator
+
+
 load_dotenv(override=True)
 
 import argparse
 import asyncio
-from functools import partial
-from collections.abc import Callable, MutableMapping
+
 import json
-from typing import Any, Dict, List, Optional
+from typing import  Optional
 import logging
 import glob
-from pathlib import Path
 import os
 from tabulate import tabulate
 
@@ -29,7 +37,7 @@ logging.basicConfig(
 
 import pandas as pd
 from tqdm import tqdm
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as pltØ
 
 from gpt_utils import gpt_column_mapping
 from json_schema import ObjectSchema
@@ -39,11 +47,12 @@ from embedding_utils import embedding_column_mapping
 from clustering_matcher import clustering_matcher 
 
 from gpt_calibration import GPTConfidenceCalibrator
-from pairwise_comparison import print_triple_comparison_table, run_all_pairwise_comparisons, print_pairwise_comparison_table,  run_triple_comparison
+from pairwise_comparison import export_pairwise_results
 from ensemble_matchers import create_ensemble_matchers
 from run_pairwise_analysis import run_pairwise_analysis
-from dataset_type_breakdown import create_dataset_type_breakdown, print_dataset_type_breakdown_table, export_latex_breakdown_table
 
+#core
+from core import  apply_rules, infer_rules
 
 print(f"🔍 IMPORT DEBUG:")
 try:
@@ -57,6 +66,10 @@ try:
     print(f"   ✅ clustering_matcher imported successfully")
 except ImportError as e:
     print(f"   ❌ clustering_matcher import failed: {e}")
+
+
+
+
 
 def get_correctness_indicator(predicted_source, ground_truth_source, confidence=0.0):
     """
@@ -91,78 +104,15 @@ def get_correctness_indicator(predicted_source, ground_truth_source, confidence=
 
 
 
+def setup_evaluation():
+    """Initialize logging and evaluation setup"""
+    logging.info("🧪 Starting Real Data Evaluation")
+    logging.info("=" * 60)
 
-async def infer_rules(column_map, target_schema: ObjectSchema) -> dict[str, Callable[[dict], Any]]:
-    # Ensure column_map contains only strings
-    column_map = {
-        target: source
-        for target, source in column_map.items()
-    }
 
-    def rule(data: dict, target_column: str) -> Any:
-        """
-        Transformation rule: Maps a source column to a target column and applies conversion.
-        """
-        source_column = column_map.get(target_column)
-        if not source_column:
-            return None  # No source column mapped
-
-        value = data.get(source_column, None)  # Fetch source data
-        if value is None:
-            return None  # No value found
-
-        try:
-            # Convert value to target schema's expected type
-            jsontype = target_schema.properties[target_column].type
-            datatype = {
-                "string": str,
-                "number": float,
-                "integer": int,
-                "boolean": bool,
-            }.get(jsontype, str)
-            value = datatype(value)
-        except ValueError as e:
-            logging.error(f" Value conversion error for column {target_column}: {e}")
-            value = None  # Handle conversion errors gracefully
-
-        return value
-
-    #  Return transformation rules dictionary
-    return {
-        column: partial(rule, target_column=column)
-        for column in target_schema.properties.keys()
-    }
-
-# TODO: improve runtime complexity from O(R*C) to O(C)
-def apply_rules(dataset: pd.DataFrame, rules: dict[str, Callable[[dict], Any]]) -> pd.DataFrame:
-    """
-    Apply transformation rules to convert source dataset to target format.
-    
-    Args:
-        dataset: Source dataframe to transform
-        rules: Dictionary mapping target columns to transformation functions
-        
-    Returns:
-        Transformed dataframe with target schema
-        
-    Note:
-        Current implementation has O(R*C) complexity where R=rows, C=columns.
-        Could be optimized to O(C) by vectorizing operations.
-    """
-    columns = rules.keys()
-    transformed_df = pd.DataFrame(columns=columns)
-    
-    for row in dataset.itertuples():
-        index = row.Index
-        data = row._asdict()
-        for column, rule in rules.items():
-            value = rule(data)
-            transformed_df.loc[index, column] = value
-            
-    return transformed_df
 
 async def main(args: argparse.ArgumentParser):
-    """Main entry point for the Hamonize system."""
+    """Main entry point for the harmonize system."""
     os.chdir(os.path.dirname(__file__))
     
     # Check if user wants to run pairwise analysis
@@ -176,171 +126,6 @@ async def main(args: argparse.ArgumentParser):
 
 
 
-def show_mapping_with_examples(predicted_mapping: dict, source_data: pd.DataFrame, num_examples: int = 1):
-    """Display schema mapping results with example values in a formatted table."""
-    table = []
-
-    for target, (src, conf) in predicted_mapping.items():
-        if src and src in source_data.columns:
-            examples = source_data[src].dropna().astype(str).unique()[:num_examples]
-            example_val = ", ".join(examples) if len(examples) > 0 else "—"
-        else:
-            example_val = "—"
-        
-        table.append([target, src if src else "—", f"{conf:.2f}", example_val])
-
-    headers = ["Target Column", "Predicted Source", "Confidence", "Example"]
-    print(tabulate(table, headers=headers, tablefmt="fancy_grid"))
-
-
-
-def export_table_as_image(data, headers, filename):
-    """Export table data as a high-quality image file."""
-    df = pd.DataFrame(data, columns=headers)
-
-    fig, ax = plt.subplots(figsize=(len(headers) * 2, len(data) * 0.6 + 1))
-    ax.axis('tight')
-    ax.axis('off')
-    
-    table = ax.table(cellText=df.values, colLabels=df.columns, 
-                    cellLoc='center', loc='center')
-    table.auto_set_font_size(False)
-    table.set_fontsize(10)
-    table.scale(1, 1.5)
-
-    os.makedirs("output", exist_ok=True)
-    filepath = os.path.join("output", filename)
-    plt.tight_layout()
-    plt.savefig(filepath, dpi=300, bbox_inches='tight')
-    plt.close(fig)
-    
-    logging.info(f"Table exported to {filepath}")
-    
-    
-
-def export_table_as_latex(data, headers, filename, caption="", label=""):
-    """Export table data as LaTeX table format with proper escaping."""
-    os.makedirs("output", exist_ok=True)
-    filepath = os.path.join("output", filename)
-    
-    def escape_latex(text):
-        """Escape special LaTeX characters and remove ANSI codes."""
-        import re
-        text = str(text)
-        # Remove ANSI color codes
-        text = re.sub(r'\033\[[0-9;]*m', '', text)
-        # Escape LaTeX special characters
-        latex_special_chars = {
-            '&': '\\&', '%': '\\%', '$': '\\$', '#': '\\#',
-            '_': '\\_', '{': '\\{', '}': '\\}', '~': '\\textasciitilde{}',
-            '^': '\\textasciicircum{}'
-        }
-        for char, escape in latex_special_chars.items():
-            text = text.replace(char, escape)
-        return text
-    
-    with open(filepath, 'w') as f:
-        num_cols = len(headers)
-        col_spec = 'l' * num_cols
-        
-        f.write("\\begin{table}[htbp]\n")
-        f.write("\\centering\n")
-        f.write(f"\\begin{{tabular}}{{{col_spec}}}\n")
-        f.write("\\toprule\n")
-        
-        # Write headers
-        escaped_headers = [escape_latex(h) for h in headers]
-        f.write(" & ".join(escaped_headers) + " \\\\\n")
-        f.write("\\midrule\n")
-        
-        # Write data rows
-        for row in data:
-            escaped_row = [escape_latex(cell) for cell in row]
-            f.write(" & ".join(escaped_row) + " \\\\\n")
-        
-        f.write("\\bottomrule\n")
-        f.write("\\end{tabular}\n")
-        
-        if caption:
-            f.write(f"\\caption{{{caption}}}\n")
-        if label:
-            f.write(f"\\label{{{label}}}\n")
-        
-        f.write("\\end{table}\n")
-    
-    logging.info(f"LaTeX table exported to {filepath}")
-    return filepath
-
-def export_table_as_latex_landscape(data, headers, filename, caption="", label=""):
-    """Export wide table as LaTeX landscape table with smaller font"""
-    os.makedirs("output", exist_ok=True)
-    filepath = os.path.join("output", filename)
-    
-    with open(filepath, 'w') as f:
-        # Landscape table for wide tables
-        f.write("\\begin{landscape}\n")
-        f.write("\\begin{table}[htbp]\n")
-        f.write("\\centering\n")
-        f.write("\\small\n")  # Smaller font for wide tables
-        
-        # Dynamic column specification based on content width
-        num_cols = len(headers)
-        if num_cols > 8:
-            col_spec = 'p{1.5cm}' * num_cols  # Fixed width columns for very wide tables
-        else:
-            col_spec = 'l' * num_cols
-        
-        f.write(f"\\begin{{tabular}}{{{col_spec}}}\n")
-        f.write("\\toprule\n")
-        
-        # Write headers with line breaks for long headers
-        formatted_headers = []
-        for header in headers:
-            # Break long headers
-            if len(header) > 10:
-                header = header.replace(' ', '\\\\ ')
-            formatted_headers.append(header)
-        
-        header_row = " & ".join(formatted_headers) + " \\\\\n"
-        f.write(header_row)
-        f.write("\\midrule\n")
-        
-        # Write data rows
-        for row in data:
-            cleaned_row = []
-            for cell in row:
-                cell_str = str(cell)
-                # Escape LaTeX special characters
-                cell_str = cell_str.replace('&', '\\&')
-                cell_str = cell_str.replace('%', '\\%')
-                cell_str = cell_str.replace('$', '\\$')
-                cell_str = cell_str.replace('#', '\\#')
-                cell_str = cell_str.replace('_', '\\_')
-                cell_str = cell_str.replace('{', '\\{')
-                cell_str = cell_str.replace('}', '\\}')
-                # Remove ANSI color codes and emoji
-                import re
-                cell_str = re.sub(r'\033\[[0-9;]*m', '', cell_str)
-                cell_str = re.sub(r'[✅❌]', '', cell_str)  # Remove checkmarks
-                cleaned_row.append(cell_str)
-            
-            data_row = " & ".join(cleaned_row) + " \\\\\n"
-            f.write(data_row)
-        
-        f.write("\\bottomrule\n")
-        f.write("\\end{tabular}\n")
-        
-        if caption:
-            f.write(f"\\caption{{{caption}}}\n")
-        if label:
-            f.write(f"\\label{{{label}}}\n")
-        
-        f.write("\\end{table}\n")
-        f.write("\\end{landscape}\n")
-    
-    print(f"✅ LaTeX landscape table saved to {filepath}")
-    return filepath
-
 
 # Initialize global GPT calibrator
 gpt_calibrator = GPTConfidenceCalibrator()
@@ -348,894 +133,44 @@ gpt_calibrator = GPTConfidenceCalibrator()
 
 
 
-def create_triple_comparison_summary(all_triple_results: List[Dict[str, MutableMapping[str, Any]]]) -> Dict[str, Any]:
-    """Create a comprehensive summary of all triple comparison results across datasets."""
-    if not all_triple_results:
-        return {"error": "No triple comparison results to summarize"}
-    
-    # Aggregate statistics across all datasets
-    total_columns = 0
-    total_all_correct = 0
-    total_two_correct = 0
-    total_one_correct = 0
-    total_none_correct = 0
-    total_agreements = 0
-    total_majority_correct = 0
-    
-    dataset_summaries = []
-    
-    for result in all_triple_results:
-        if 'error' in result:
-            continue
-            
-        stats = result['summary_stats']
-        source_table = result.get('source_table', 'Unknown')
-        target_table = result.get('target_table', 'Unknown')
-        
-        # Aggregate totals
-        dataset_total = stats['total_columns']
-        total_columns += dataset_total
-        total_all_correct += len(result['patterns']['all_correct'])
-        total_two_correct += len(result['patterns']['two_correct'])
-        total_one_correct += len(result['patterns']['one_correct'])
-        total_none_correct += len(result['patterns']['none_correct'])
-        total_majority_correct += len(result['patterns']['majority_correct'])
-        
-        # Calculate agreement count from detailed results
-        agreement_count = sum(1 for detail in result['detailed_results'] if detail['all_agree'])
-        total_agreements += agreement_count
-        
-        # Store dataset summary
-        dataset_summaries.append({
-            'source_table': source_table,
-            'target_table': target_table,
-            'total_columns': dataset_total,
-            'all_correct_rate': stats['all_correct_rate'],
-            'agreement_rate': stats['agreement_rate'],
-            'majority_accuracy': stats['majority_accuracy']
-        })
-    
-    # Calculate overall statistics
-    overall_stats = {
-        'total_columns': total_columns,
-        'total_datasets': len([r for r in all_triple_results if 'error' not in r]),
-        'all_correct_rate': total_all_correct / total_columns if total_columns > 0 else 0,
-        'two_correct_rate': total_two_correct / total_columns if total_columns > 0 else 0,
-        'one_correct_rate': total_one_correct / total_columns if total_columns > 0 else 0,
-        'none_correct_rate': total_none_correct / total_columns if total_columns > 0 else 0,
-        'agreement_rate': total_agreements / total_columns if total_columns > 0 else 0,
-        'majority_accuracy': total_majority_correct / total_columns if total_columns > 0 else 0
-    }
-    
-    return {
-        'overall_stats': overall_stats,
-        'dataset_summaries': dataset_summaries
-    }
-
-def print_triple_comparison_summary(summary: Dict):
-    """Print formatted summary of all triple comparison results."""
-    
-    if 'error' in summary:
-        print(f"❌ {summary['error']}")
-        return
-    
-    overall = summary['overall_stats']
-    
-    print(f"\n🎯 TRIPLE COMPARISON GLOBAL SUMMARY")
-    print("=" * 80)
-    print(f"📊 Overall Statistics Across {overall['total_datasets']} Datasets:")
-    print(f"   Total Columns Analyzed: {overall['total_columns']}")
-    print(f"   All 3 Matchers Correct: {overall['all_correct_rate']:.1%}")
-    print(f"   2/3 Matchers Correct:   {overall['two_correct_rate']:.1%}")
-    print(f"   1/3 Matchers Correct:   {overall['one_correct_rate']:.1%}")
-    print(f"   0/3 Matchers Correct:   {overall['none_correct_rate']:.1%}")
-    print(f"   Agreement Rate:         {overall['agreement_rate']:.1%}")
-    print(f"   Majority Vote Accuracy: {overall['majority_accuracy']:.1%}")
-    
-    # Dataset-by-dataset breakdown
-    print(f"\n📋 Dataset Breakdown:")
-    dataset_table = []
-    headers = ["Source", "Target", "Columns", "All Correct", "Agreement", "Majority Acc"]
-    
-    for ds in summary['dataset_summaries']:
-        dataset_table.append([
-            ds['source_table'],
-            ds['target_table'], 
-            ds['total_columns'],
-            f"{ds['all_correct_rate']:.1%}",
-            f"{ds['agreement_rate']:.1%}",
-            f"{ds['majority_accuracy']:.1%}"
-        ])
-    
-    print(tabulate(dataset_table, headers=headers, tablefmt="fancy_grid"))
-    
-    # Export results
-    print(f"\n💾 Exporting detailed summary...")
-    os.makedirs("output", exist_ok=True)
-    
-    # Export as JSON
-    with open("output/triple_comparison_global_summary.json", "w") as f:
-        json.dump(summary, f, indent=2, default=str)
-    
-    # Export dataset table as LaTeX
-    export_table_as_latex(
-        dataset_table,
-        headers,
-        "triple_comparison_summary.tex",
-        caption="Triple comparison summary across all datasets",
-        label="tab:triple_comparison_summary"
-    )
-    
-    print("✅ Global triple comparison summary exported to:")
-    print("   📁 output/triple_comparison_global_summary.json")
-    print("   📄 output/triple_comparison_summary.tex")
-
-
-def create_individual_matcher_ranking(all_triple_results: List[Dict]) -> Dict[str, float]:
-    """Create ranking of individual matchers based on overall performance across all datasets."""
-    if not all_triple_results:
-        return {}
-    
-    gpt_correct = 0
-    embedding_correct = 0
-    clustering_correct = 0
-    total_predictions = 0
-    
-    # Aggregate performance across all datasets
-    for triple_result in all_triple_results:
-        if 'error' not in triple_result and 'detailed_results' in triple_result:
-            for detail in triple_result['detailed_results']:
-                total_predictions += 1
-                if detail.get('gpt_correct', False):
-                    gpt_correct += 1
-                if detail.get('embedding_correct', False):
-                    embedding_correct += 1
-                if detail.get('clustering_correct', False):
-                    clustering_correct += 1
-    
-    if total_predictions > 0:
-        rankings = {
-            "GPT": gpt_correct / total_predictions,
-            "Embedding": embedding_correct / total_predictions, 
-            "Clustering": clustering_correct / total_predictions,
-        }
-        
-        return rankings
-    return {}
-
-def print_individual_matcher_ranking(rankings: Dict[str, float], total_predictions: int):
-    """Print formatted individual matcher performance ranking."""
-    if not rankings:
-        print("❌ No individual matcher rankings available")
-        return
-    
-    # Sort by performance
-    sorted_rankings = sorted(rankings.items(), key=lambda x: x[1], reverse=True)
-    
-    print(f"\n🏆 INDIVIDUAL MATCHER PERFORMANCE RANKING")
-    print("=" * 60)
-    print(f"📊 Based on {total_predictions} total column predictions across all datasets:")
-    print()
-    
-    for i, (matcher, accuracy) in enumerate(sorted_rankings, 1):
-        medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉"
-        print(f"   {medal} {i}. {matcher:12}: {accuracy:.1%} accuracy")
-    
-    # Calculate performance gaps
-    if len(sorted_rankings) >= 2:
-        best_score = sorted_rankings[0][1]
-        worst_score = sorted_rankings[-1][1]
-        gap = best_score - worst_score
-        print(f"\n📈 Performance Analysis:")
-        print(f"   Best vs Worst Gap: {gap:.1%}")
-        
-        if gap < 0.1:  # Less than 10% difference
-            print("   💡 All matchers perform similarly - ensemble methods recommended")
-        elif gap > 0.3:  # More than 30% difference
-            print(f"   💡 Clear winner: {sorted_rankings[0][0]} significantly outperforms others")
-        else:
-            print("   💡 Moderate performance differences - ensemble can help")
-
-
-def analyze_pairwise_champions(all_pairwise_results: List[Dict]) -> Dict:
-    """Analyze pairwise comparison results and identify champion pairs."""
-    if not all_pairwise_results:
-        return {"error": "No pairwise results to analyze"}
-    
-    # Track performance by comparison type
-    comparison_performance = {}
-    comparison_types = ["GPT_vs_Embedding", "GPT_vs_Clustering", "Embedding_vs_Clustering"]
-    
-    for comp_type in comparison_types:
-        f1_scores = []
-        agreements = []
-        precisions = []
-        recalls = []
-        
-        for result in all_pairwise_results:
-            if comp_type in result["comparisons"]:
-                metrics = result["comparisons"][comp_type]
-                f1_scores.append(metrics.f1_score)
-                agreements.append(metrics.agreement_rate)
-                precisions.append(metrics.precision)
-                recalls.append(metrics.recall)
-        
-        if f1_scores:
-            comparison_performance[comp_type] = {
-                'avg_f1': sum(f1_scores) / len(f1_scores),
-                'avg_agreement': sum(agreements) / len(agreements),
-                'avg_precision': sum(precisions) / len(precisions),
-                'avg_recall': sum(recalls) / len(recalls),
-                'count': len(f1_scores)
-            }
-    
-    return comparison_performance
-
-def print_pairwise_champions(pairwise_performance: Dict):
-    """Print pairwise comparison champions and analysis."""
-    if 'error' in pairwise_performance:
-        print(f"❌ {pairwise_performance['error']}")
-        return
-    
-    if not pairwise_performance:
-        print("❌ No pairwise performance data available")
-        return
-    
-    print(f"\n🤝 PAIRWISE COMPARISON CHAMPIONS")
-    print("=" * 60)
-    
-    # Find champions by different metrics
-    f1_champion = max(pairwise_performance.items(), key=lambda x: x[1]['avg_f1'])
-    agreement_champion = max(pairwise_performance.items(), key=lambda x: x[1]['avg_agreement'])
-    precision_champion = max(pairwise_performance.items(), key=lambda x: x[1]['avg_precision'])
-    recall_champion = max(pairwise_performance.items(), key=lambda x: x[1]['avg_recall'])
-    
-    print(f"🏆 Best F1 Score:     {f1_champion[0].replace('_', ' ')} ({f1_champion[1]['avg_f1']:.3f})")
-    print(f"🤝 Best Agreement:    {agreement_champion[0].replace('_', ' ')} ({agreement_champion[1]['avg_agreement']:.3f})")
-    print(f"🎯 Best Precision:    {precision_champion[0].replace('_', ' ')} ({precision_champion[1]['avg_precision']:.3f})")
-    print(f"📊 Best Recall:       {recall_champion[0].replace('_', ' ')} ({recall_champion[1]['avg_recall']:.3f})")
-    
-    # Overall champion (based on F1 score)
-    overall_champion = f1_champion[0].replace('_', ' ')
-    print(f"\n👑 OVERALL PAIRWISE CHAMPION: {overall_champion}")
-    print(f"   F1: {f1_champion[1]['avg_f1']:.3f} | Agreement: {f1_champion[1]['avg_agreement']:.3f}")
-    
-    # Performance analysis
-    f1_scores = [perf['avg_f1'] for perf in pairwise_performance.values()]
-    best_f1 = max(f1_scores)
-    worst_f1 = min(f1_scores)
-    f1_gap = best_f1 - worst_f1
-    
-    print(f"\n📈 Pairwise Performance Analysis:")
-    print(f"   F1 Score Range: {worst_f1:.3f} - {best_f1:.3f} (gap: {f1_gap:.3f})")
-    
-    if f1_gap < 0.1:
-        print("   💡 All matcher pairs perform similarly")
-    elif f1_gap > 0.3:
-        print(f"   💡 Clear pairwise winner: {overall_champion}")
-    else:
-        print("   💡 Moderate differences between matcher pairs")
-    
-    # Detailed breakdown table
-    print(f"\n📋 Detailed Pairwise Performance:")
-    table_data = []
-    headers = ["Pair", "Avg F1", "Avg Precision", "Avg Recall", "Avg Agreement", "Datasets"]
-    
-    for comp_type, metrics in pairwise_performance.items():
-        table_data.append([
-            comp_type.replace("_", " "),
-            f"{metrics['avg_f1']:.3f}",
-            f"{metrics['avg_precision']:.3f}",
-            f"{metrics['avg_recall']:.3f}",
-            f"{metrics['avg_agreement']:.3f}",
-            metrics['count']
-        ])
-    
-    print(tabulate(table_data, headers=headers, tablefmt="fancy_grid"))
-
-
-def analyze_triple_champions(all_triple_results: List[Dict]) -> Dict:
-    """Analyze triple comparison results and identify champion performance patterns."""
-    if not all_triple_results:
-        return {"error": "No triple results to analyze"}
-    
-    # Track different success patterns
-    pattern_stats = {
-        'all_correct': 0,
-        'two_correct': 0, 
-        'one_correct': 0,
-        'none_correct': 0,
-        'all_agree': 0,
-        'majority_correct': 0,
-        'total_columns': 0
-    }
-    
-    # Track ensemble performance
-    ensemble_stats = {
-        'majority_vote_correct': 0,
-        'all_agree_and_correct': 0,
-        'best_individual_vs_majority': {'individual': 0, 'majority': 0}
-    }
-    
-    # Track individual contributions to success
-    individual_contributions = {
-        'gpt_in_success': 0,
-        'embedding_in_success': 0, 
-        'clustering_in_success': 0
-    }
-    
-    total_successful_cases = 0  # Cases where at least 2/3 are correct
-    
-    for result in all_triple_results:
-        if 'error' in result:
-            continue
-            
-        # Aggregate pattern statistics
-        patterns = result.get('patterns', {})
-        pattern_stats['all_correct'] += len(patterns.get('all_correct', []))
-        pattern_stats['two_correct'] += len(patterns.get('two_correct', []))
-        pattern_stats['one_correct'] += len(patterns.get('one_correct', []))
-        pattern_stats['none_correct'] += len(patterns.get('none_correct', []))
-        pattern_stats['majority_correct'] += len(patterns.get('majority_correct', []))
-        
-        # Analyze detailed results
-        for detail in result.get('detailed_results', []):
-            pattern_stats['total_columns'] += 1
-            
-            if detail.get('all_agree', False):
-                pattern_stats['all_agree'] += 1
-                
-            # Count successful cases (2/3 or 3/3 correct)
-            correct_count = sum([
-                detail.get('gpt_correct', False),
-                detail.get('embedding_correct', False), 
-                detail.get('clustering_correct', False)
-            ])
-            
-            if correct_count >= 2:
-                total_successful_cases += 1
-                
-                # Track individual contributions to success
-                if detail.get('gpt_correct', False):
-                    individual_contributions['gpt_in_success'] += 1
-                if detail.get('embedding_correct', False):
-                    individual_contributions['embedding_in_success'] += 1
-                if detail.get('clustering_correct', False):
-                    individual_contributions['clustering_in_success'] += 1
-            
-            # Majority vote performance  
-            if detail.get('majority_correct', False):
-                ensemble_stats['majority_vote_correct'] += 1
-                
-            # All agree and correct cases
-            if detail.get('all_agree', False) and correct_count == 3:
-                ensemble_stats['all_agree_and_correct'] += 1
-    
-    # Calculate percentages
-    total_cols = pattern_stats['total_columns']
-    if total_cols > 0:
-        # Create a copy of keys to avoid "dictionary changed size during iteration" error
-        pattern_keys = list(pattern_stats.keys())
-        for key in pattern_keys:
-            if key != 'total_columns':
-                pattern_stats[f'{key}_rate'] = pattern_stats[key] / total_cols
-        
-        ensemble_stats['majority_vote_accuracy'] = ensemble_stats['majority_vote_correct'] / total_cols
-        ensemble_stats['consensus_accuracy'] = ensemble_stats['all_agree_and_correct'] / total_cols
-        
-        # Individual contribution rates in successful cases
-        if total_successful_cases > 0:
-            # Create a copy of keys to avoid iteration error
-            contrib_keys = list(individual_contributions.keys())
-            for key in contrib_keys:
-                individual_contributions[f'{key}_rate'] = individual_contributions[key] / total_successful_cases
-    
-    return {
-        'pattern_stats': pattern_stats,
-        'ensemble_stats': ensemble_stats,
-        'individual_contributions': individual_contributions,
-        'total_successful_cases': total_successful_cases
-    }
-
-def print_triple_champions(triple_analysis: Dict):
-    """Print triple comparison champions and ensemble analysis."""
-    if 'error' in triple_analysis:
-        print(f"❌ {triple_analysis['error']}")
-        return
-        
-    pattern_stats = triple_analysis.get('pattern_stats', {})
-    ensemble_stats = triple_analysis.get('ensemble_stats', {})
-    contributions = triple_analysis.get('individual_contributions', {})
-    
-    total_cols = pattern_stats.get('total_columns', 0)
-    if total_cols == 0:
-        print("❌ No triple comparison data available")
-        return
-    
-    print(f"\n🎯 TRIPLE COMPARISON CHAMPIONS & ENSEMBLE ANALYSIS")
-    print("=" * 70)
-    
-    # Pattern performance
-    print(f"📊 Collaboration Success Patterns (across {total_cols} predictions):")
-    print(f"   🎯 Perfect Harmony (3/3 correct): {pattern_stats.get('all_correct_rate', 0):.1%}")
-    print(f"   🤝 Strong Majority (2/3 correct): {pattern_stats.get('two_correct_rate', 0):.1%}") 
-    print(f"   ⚡ Solo Success (1/3 correct):    {pattern_stats.get('one_correct_rate', 0):.1%}")
-    print(f"   💥 Total Failure (0/3 correct):  {pattern_stats.get('none_correct_rate', 0):.1%}")
-    print(f"   🔄 Full Agreement Rate:          {pattern_stats.get('all_agree_rate', 0):.1%}")
-    
-    # Ensemble performance  
-    majority_acc = ensemble_stats.get('majority_vote_accuracy', 0)
-    consensus_acc = ensemble_stats.get('consensus_accuracy', 0)
-    
-    print(f"\n🏆 ENSEMBLE CHAMPIONS:")
-    print(f"   👑 Majority Vote Accuracy:       {majority_acc:.1%}")
-    print(f"   🎪 Consensus (All Agree) Accuracy: {consensus_acc:.1%}")
-    
-    # Determine champion approach
-    individual_max = max([
-        pattern_stats.get('all_correct_rate', 0),
-        pattern_stats.get('two_correct_rate', 0)
-    ])
-    
-    if majority_acc > individual_max:
-        print(f"   🏅 CHAMPION APPROACH: Majority Vote Ensemble")
-        print(f"     Outperforms individual patterns by {(majority_acc - individual_max):.1%}")
-    else:
-        print(f"   🏅 CHAMPION APPROACH: Individual Matcher Performance")
-        print(f"     Best individual pattern: {individual_max:.1%}")
-    
-    # Individual contributions to success
-    total_successful = triple_analysis.get('total_successful_cases', 0)
-    if total_successful > 0:
-        print(f"\n🌟 Success Contribution Analysis (in {total_successful} successful cases):")
-        gpt_contrib = contributions.get('gpt_in_success_rate', 0)
-        emb_contrib = contributions.get('embedding_in_success_rate', 0) 
-        clust_contrib = contributions.get('clustering_in_success_rate', 0)
-        
-        # Sort contributors
-        contrib_list = [
-            ('GPT', gpt_contrib),
-            ('Embedding', emb_contrib), 
-            ('Clustering', clust_contrib)
-        ]
-        contrib_list.sort(key=lambda x: x[1], reverse=True)
-        
-        for i, (matcher, rate) in enumerate(contrib_list, 1):
-            medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉"
-            print(f"   {medal} {matcher}: Contributes to {rate:.1%} of successful cases")
-    
-    # Recommendations
-    print(f"\n💡 TRIPLE COMPARISON INSIGHTS:")
-    if pattern_stats.get('all_agree_rate', 0) > 0.7:
-        print("   🤝 High agreement rate - matchers are consistent")
-    elif pattern_stats.get('all_agree_rate', 0) < 0.3:
-        print("   🔀 Low agreement rate - matchers are diverse (good for ensembles)")
-    
-    if majority_acc > 0.8:
-        print("   ✨ Majority vote is highly effective - use ensemble approaches")
-    elif majority_acc < 0.5:
-        print("   ⚠️ Consider individual matcher selection or weighted ensembles")
-
-
 async def main_test(args: argparse.Namespace):
     """
+    Refactored main_test function broken into smaller components.
     Enhanced main_test that uses synthetic data as ground truth for real source data evaluation.
     """
+    # Initialize data structures
     results = []
     detailed_matches = []
-    all_pairwise_results = []  # Collect all pairwise comparison results
-    all_triple_results = []  # Collect all triple comparison results
-
-    # Add cross-dataset aggregation structure as per todo2.txt
-    target_schema_results = {}  # Group results by target schema
+    all_pairwise_results = []
+    all_triple_results = []
+    target_schema_results = {}
     all_approaches = ["GPT", "Embedding", "Clustering", "Majority Vote", "Weighted Ensemble"]
 
-    logging.info("🧪 Starting Real Data Evaluation with Synthetic Ground Truth")
-    logging.info("=" * 60)
+    # Setup evaluation
+    setup_evaluation()
     
-    # Load pre-trained GPT calibrator if it exists
-    calibrator_path = "./models/gpt_isotonic_calibrator.pkl"
-    if os.path.exists(calibrator_path):
-        global gpt_calibrator
-        gpt_calibrator = GPTConfidenceCalibrator.load(calibrator_path)
-        logging.info("✅ Loaded pre-trained GPT isotonic calibrator")
-    else:
-        logging.warning("⚠️ No pre-trained GPT calibrator found, starting from scratch")
+    # Load GPT calibrator
+    gpt_calibrator = await load_gpt_calibrator()
 
-    # Iterate over all source CSV files
+    # Process all source CSV files
     for source_csv_path in sorted(glob.glob("./assets/source/*.csv")):
         logging.info(f"📁 Processing source: {source_csv_path}")
-        source_table = Path(source_csv_path).stem
-        source_path = f"./assets/source/{source_table}.csv"
-        source_data = pd.read_csv(source_path)
-        source_schema_path = f"./assets/source/{source_table}.json"
-
-        # Load or infer source schema
-        if os.path.exists(source_schema_path):
-            with open(source_schema_path) as f:
-                source_schema = ObjectSchema.model_validate_json(f.read())
-        else:
-            source_schema = await infer_schema(source_data)
-
-        # Iterate over all target JSON schemas
+        
+        # Process all target JSON schemas for this source
         for target_path in tqdm(sorted(glob.glob("./assets/target/*.json", recursive=True))):
-            target_table, _ = os.path.splitext(os.path.basename(target_path))
-
-            with open(target_path) as f:
-                target_schema = ObjectSchema.model_validate_json(f.read())
-
-            logging.info(f"🎯 Matching {source_table} → {target_table}")
-
-            # Generate synthetic ground truth for this target schema
-            synthetic_source_schema, expected_mapping = await apply_perturbations(target_schema, seed=args.seed)
-            logging.info(f"📋 Generated {len(expected_mapping)} synthetic mappings as ground truth")
-
-            # Load expected mapping for this target schema first
-            target_prefix = "_".join(target_table.split("_")[:2])
-            real_gt_path = f"./assets/expected/{target_prefix}_mapping.json"
-            logging.info(f"🔍 Loading expected mapping from: {real_gt_path}")
-
-            # Initialize real_gt_mapping as None
-            real_gt_mapping = None
-            
-            # Try to load real ground truth
-            try:
-                with open(real_gt_path) as f:
-                    real_gt_data = json.load(f)
-                
-                # Extract the actual mapping from the loaded data
-                if "mappings" in real_gt_data:
-                    # Format: {"mappings": [{"source_column": "src", "target_column": "tgt"}]}
-                    real_gt_mapping = {
-                        mapping["target_column"]: mapping["source_column"]
-                        for mapping in real_gt_data["mappings"]
-                    }
-                elif "matches" in real_gt_data:
-                    # Format: {"matches": [{"source_column": "src", "target_column": "tgt"}]}
-                    real_gt_mapping = {
-                        mapping["target_column"]: mapping["source_column"]
-                        for mapping in real_gt_data["matches"]
-                    }
-                elif isinstance(real_gt_data, dict) and all(isinstance(v, str) for v in real_gt_data.values()):
-                    # Format: {"target_col": "source_col"}
-                    real_gt_mapping = real_gt_data
-                else:
-                    print(f"⚠️ Unknown real ground truth format in {real_gt_path}")
-                    real_gt_mapping = None
-                    
-                print(f"✅ Loaded real ground truth with {len(real_gt_mapping)} mappings")
-            except FileNotFoundError:
-                print(f"⚠️ Real ground truth file not found: {real_gt_path}")
-                real_gt_mapping = None
-            except Exception as e:
-                print(f"⚠️ Error loading real ground truth: {e}")
-                real_gt_mapping = None
-
-            # Run all matchers with the real source schema and target schema
-            raw_gpt_predictions = await gpt_column_mapping(source_schema, target_schema, seed=args.seed)
-            
-            # Collect training data if we have ground truth
-            if real_gt_mapping:
-                gpt_calibrator.collect_training_data(raw_gpt_predictions, real_gt_mapping)
-            
-            # Apply calibration if calibrator is fitted
-            if gpt_calibrator.is_fitted:
-                predicted_mapping = gpt_calibrator.calibrate_predictions(raw_gpt_predictions)
-                print("🎯 Applied isotonic calibration to GPT-4 confidences")
-            else:
-                predicted_mapping = raw_gpt_predictions
-                print("⚠️ Using raw GPT-4 confidences (calibrator not fitted)")
-
-            embed_predicted = embedding_column_mapping(
-                source_columns=list(source_schema.properties.keys()),
-                target_columns=list(target_schema.properties.keys()),
-                threshold=0
+            await process_single_source_target_pair(
+                source_csv_path, target_path, args, gpt_calibrator,
+                all_pairwise_results, all_triple_results, detailed_matches,
+                results, target_schema_results, all_approaches
             )
-            
-            
-            cluster_predicted = clustering_matcher(source_schema, target_schema)
-            
-            # NEW: Step 2 - Pairwise Comparisons as shown in your sketch
-            print(f"\n🔄 Step 2: Pairwise Matcher Comparisons")
-            
-            pairwise_results, pairwise_result_entry = run_all_pairwise_comparisons(
-                gpt_predictions=predicted_mapping,
-                embedding_predictions=embed_predicted,
-                clustering_predictions=cluster_predicted,
-                ground_truth=None,  # No ground truth = pure matcher agreement
-                source_table=source_table,
-                target_table=target_table
-            )
-            
-            # Display pairwise comparison results
-            print_pairwise_comparison_table(
-                pairwise_results, source_table, target_table
-            )
-            
-            # Store pairwise result for later export
-            all_pairwise_results.append(pairwise_result_entry)
-            
-            
-            # NEW: Step 3 - Triple Comparison Analysis
-            print(f"\n🔄 Step 3: Triple Matcher Comparison Against Ground Truth")
-            if real_gt_mapping:
-                triple_results = run_triple_comparison(
-                    gpt_predictions=predicted_mapping,
-                    embedding_predictions=embed_predicted,
-                    clustering_predictions=cluster_predicted,
-                    ground_truth=real_gt_mapping,
-                    source_table=source_table,
-                    target_table=target_table
-                )
-                
-                # ADD: Store source and target info
-                triple_results['source_table'] = source_table
-                triple_results['target_table'] = target_table
-                
-                # ADD: Store for global summary
-                all_triple_results.append(triple_results)
+
+    # Generate global summaries
+    generate_global_summaries(all_triple_results, all_pairwise_results)
     
-                
-                print(f"📊 Triple Comparison Results for {source_table} → {target_table}")
-                print_triple_comparison_table(triple_results, source_table, target_table)
-
-
-            else:
-                print("⚠️ No real ground truth available for triple comparison")
-            
-            
-            # Show mapping with examples from real data
-            show_mapping_with_examples(predicted_mapping, source_data)
-
-            # Create ensemble matchers
-            majority_ensemble, weighted_ensemble = create_ensemble_matchers(
-                predicted_mapping,    # GPT predictions
-                embed_predicted,      # Embedding predictions  
-                cluster_predicted,    # Clustering predictions
-            )
-
-            # Get ensemble predictions
-            majority_predicted = majority_ensemble.predict(source_schema, target_schema)
-            weighted_predicted = weighted_ensemble.predict(source_schema, target_schema)
-
-            # Build comprehensive comparison table
-            comparison_table = []
-            gt_type = "Real GT" if real_gt_mapping else "Synthetic GT"
-            headers = [
-                "Target", gt_type,
-                "GPT Match", "GPT Score",
-                "Embed Match", "Embed Score", 
-                "Cluster Match", "Cluster Score",
-                "Majority Match", "Majority Score",
-                "Weighted Match", "Weighted Score"
-            ]
-
-            for col in target_schema.properties.keys():
-                # Use real ground truth if available, otherwise use synthetic
-                ground_truth_for_col = real_gt_mapping.get(col, "—") if real_gt_mapping else expected_mapping.get(col, "—")
-                
-                gpt_match, gpt_score = predicted_mapping.get(col, ("—", 0.0))
-                emb_match, emb_score = embed_predicted.get(col, ("—", 0.0))
-                cluster_match, cluster_score = cluster_predicted.get(col, ("—", 0.0))
-                majority_match, majority_score = majority_predicted.get(col, ("—", 0.0))
-                weighted_match, weighted_score = weighted_predicted.get(col, ("—", 0.0))
-                
-                # Add color coding for correctness with confidence-based background
-                gpt_display = get_correctness_indicator(gpt_match, ground_truth_for_col, gpt_score)
-                emb_display = get_correctness_indicator(emb_match, ground_truth_for_col, emb_score)
-                cluster_display = get_correctness_indicator(cluster_match, ground_truth_for_col, cluster_score)
-                majority_display = get_correctness_indicator(majority_match, ground_truth_for_col, majority_score)
-                weighted_display = get_correctness_indicator(weighted_match, ground_truth_for_col, weighted_score)
-                
-                comparison_table.append([
-                    col, ground_truth_for_col,
-                    gpt_display, f"{gpt_score:.2f}",
-                    emb_display, f"{emb_score:.2f}",
-                    cluster_display, f"{cluster_score:.2f}",
-                    majority_display, f"{majority_score:.2f}",
-                    weighted_display, f"{weighted_score:.2f}"
-                ])
-
-                # Add detailed match info for each matcher including ensembles
-                for matcher_name, match, sim in [
-                    ("gpt", gpt_match, gpt_score),
-                    ("embed", emb_match, emb_score),
-                    ("cluster", cluster_match, cluster_score),
-                    ("majority", majority_match, majority_score),
-                    ("weighted", weighted_match, weighted_score)
-                ]:
-                    if match not in ("—", None):
-                        detailed_matches.append({
-                            "source": f"real_{source_table}.{match}",
-                            "target": f"{target_table}.{col}",
-                            "similarity": round(sim, 4),
-                            "src_file": f"{source_table}.csv",
-                            "trg_file": f"{target_table}.json",
-                            "matcher": matcher_name,
-                            "ground_truth": ground_truth_for_col
-                        })
-
-            print(f"\n📊 Complete Matcher Comparison for {source_table} → {target_table}")
-            export_table_as_latex_landscape(
-                comparison_table, 
-                headers, 
-                f"RealData_{source_table}_to_{target_table}.tex",
-                caption=f"Matcher comparison for {source_table} to {target_table}",
-                label=f"tab:{source_table}_{target_table}"
-            )
-            
-            # Calculate accuracy against real or synthetic ground truth for Overall row
-            approaches = [
-                ("GPT", predicted_mapping),
-                ("Embedding", embed_predicted),
-                ("Clustering", cluster_predicted),
-                ("Majority Vote", majority_predicted),
-                ("Weighted Ensemble", weighted_predicted)
-            ]
-            
-            # Use real ground truth if available, otherwise synthetic
-            evaluation_mapping = real_gt_mapping if real_gt_mapping else expected_mapping
-            
-            # Build Overall summary row as per todo.txt algorithm
-            overall_row = ["Overall", " "]  # Target column = "Overall", GT column = " "
-            
-            for name, predictions in approaches:
-                correct_count = sum(1 for col, expected_src in evaluation_mapping.items()
-                                  if col in predictions and predictions[col][0] == expected_src)
-                total_count = len(evaluation_mapping)
-                accuracy = correct_count / total_count if total_count > 0 else 0.0
-                
-                # Calculate confidence-weighted score as per todo.txt algorithm
-                confidence_weighted_score = 0.0
-                for col, expected_src in evaluation_mapping.items():
-                    if col in predictions:
-                        predicted_src, confidence = predictions[col]
-                        is_correct = (predicted_src == expected_src)
-                        confidence_weighted_score += confidence if is_correct else -confidence
-                
-                # Normalize by total count (score = scores(approach) / len(targetSchema))
-                normalized_score = confidence_weighted_score / total_count if total_count > 0 else 0.0
-                
-                # Add accuracy and score to overall row
-                overall_row.extend([f"{accuracy:.3f}", f"{normalized_score:.3f}"])
-            
-            # Add Overall row to comparison table
-            comparison_table.append(overall_row)
-            
-            print(tabulate(comparison_table, headers=headers, tablefmt="fancy_grid"))
-
-            # Store results for cross-dataset aggregation (todo2.txt)
-            if target_table not in target_schema_results:
-                target_schema_results[target_table] = {
-                    'total_combinations': 0,
-                    'approach_accuracies': {name: [] for name in all_approaches},
-                    'approach_scores': {name: [] for name in all_approaches}
-                }
-            
-            target_schema_results[target_table]['total_combinations'] += 1
-            
-            # Store individual approach results for this target schema
-            for i, (name, predictions) in enumerate(approaches):
-                correct_count = sum(1 for col, expected_src in evaluation_mapping.items()
-                                  if col in predictions and predictions[col][0] == expected_src)
-                total_count = len(evaluation_mapping)
-                accuracy = correct_count / total_count if total_count > 0 else 0.0
-                
-                confidence_weighted_score = 0.0
-                for col, expected_src in evaluation_mapping.items():
-                    if col in predictions:
-                        predicted_src, confidence = predictions[col]
-                        is_correct = (predicted_src == expected_src)
-                        confidence_weighted_score += confidence if is_correct else -confidence
-                
-                normalized_score = confidence_weighted_score / total_count if total_count > 0 else 0.0
-                
-                target_schema_results[target_table]['approach_accuracies'][name].append(accuracy)
-                target_schema_results[target_table]['approach_scores'][name].append(normalized_score)
-
-            # Export table as image
-            export_table_as_image(comparison_table, headers, f"RealData_{source_table}_to_{target_table}.png")
-
-            # Calculate overall score
-            score = score_mapping(predicted_mapping, evaluation_mapping)
-            score_val = score[0] if score and isinstance(score, tuple) else None
-            score_display = f"{score_val:.2f}" if score_val is not None else "—"
-            weight_display = str(len(target_schema.properties))
-
-            results.append([
-                source_table,
-                target_table,
-                score_display,
-                weight_display
-            ])
-
-    print(f"\n🔄 STEP 3 COMPLETE: Creating Global Triple Comparison Summary")
-    print("=" * 80)
+    # Train and save calibrator
+    train_and_save_calibrator(gpt_calibrator)
     
-    if all_triple_results:
-        global_triple_summary = create_triple_comparison_summary(all_triple_results)
-        print_triple_comparison_summary(global_triple_summary)
-        
-        # NEW: Individual Matcher Performance Ranking
-        individual_rankings = create_individual_matcher_ranking(all_triple_results)
-        total_predictions = sum(len(result.get('detailed_results', [])) 
-                              for result in all_triple_results 
-                              if 'error' not in result)
-        print_individual_matcher_ranking(individual_rankings, total_predictions)
-        
-        # NEW: Triple Champions & Ensemble Analysis
-        triple_analysis = analyze_triple_champions(all_triple_results)
-        print_triple_champions(triple_analysis)
-        
-        # NEW: Dataset Type Breakdown Analysis
-        print(f"\n📊 DATASET TYPE BREAKDOWN ANALYSIS")
-        print("=" * 80)
-        dataset_breakdown = create_dataset_type_breakdown([], all_triple_results)
-        table_data = print_dataset_type_breakdown_table(dataset_breakdown)
-        
-        # Export LaTeX table for thesis
-        export_latex_breakdown_table(table_data, "dataset_breakdown_harmonize")
-        print(f"✅ LaTeX table exported to output/dataset_breakdown_harmonize.tex")
-        
-    else:
-        print("⚠️ No triple comparison results to summarize")
-
-    # NEW: Create and display pairwise comparison summary
-    print(f"\n🔄 STEP 2 COMPLETE: Creating Global Pairwise Comparison Summary")
-    print("=" * 80)
-
-    if all_pairwise_results:
-        # Use the existing export function to create the summary
-        from pairwise_comparison import export_pairwise_results
-        
-        summary_data, headers = export_pairwise_results(
-            all_pairwise_results, 
-            "global_pairwise_comparison_results"
-        )
-        
-        # NEW: Analyze and display pairwise champions
-        pairwise_performance = analyze_pairwise_champions(all_pairwise_results)
-        print_pairwise_champions(pairwise_performance)
-        
-        print(f"✅ Pairwise comparison summary exported for {len(all_pairwise_results)} dataset pairs")
-    else:
-        print("⚠️ No pairwise comparison results to summarize")
-        
-        
-   
-    
-   # The above code snippet is training a GPT Isotonic Calibrator using the `fit()` method. After
-   # training the calibrator, it saves the trained model to a specified path, generates a calibration
-   # curve plot, generates LaTeX code for the calibration plot, saves the LaTeX code to a file, and
-   # prints calibration statistics including Raw ECE (Expected Calibration Error), Calibrated ECE,
-   # Improvement, and the number of training samples used.
-    # After processing all data, train the calibrator
-    print("\n🎯 Training GPT Isotonic Calibrator...")
-    if gpt_calibrator.fit():
-        # Save the trained calibrator
-        os.makedirs("./models", exist_ok=True)
-        gpt_calibrator.save(calibrator_path)
-        
-        # Generate calibration plots
-        os.makedirs("./output", exist_ok=True)
-        # Generate calibration plot
-        fig = gpt_calibrator.plot_calibration_curve("./output/gpt_calibration_curve.png")
-        if fig:
-            plt.close(fig)  # Close to free memory
-        
-        # Generate LaTeX calibration plot code
-        latex_code = gpt_calibrator.generate_latex_calibration_plot()
-        
-        # Print calibration statistics
-        stats = gpt_calibrator.get_calibration_stats()
-        if stats:
-            print(f"📊 GPT Calibration Results:")
-            print(f"   Raw ECE: {stats['raw_ece']:.4f}")
-            print(f"   Calibrated ECE: {stats['calibrated_ece']:.4f}")
-            print(f"   Improvement: {stats['improvement']:.4f}")
-            print(f"   Training samples: {stats['n_samples']}")
-            
-    # NEW: Export complete pairwise comparison results
+    # Export pairwise comparison results
     print(f"\n🔄 STEP 2 COMPLETE: Exporting Pairwise Comparison Results")
     print("=" * 70)
     if all_pairwise_results:
@@ -1243,165 +178,11 @@ async def main_test(args: argparse.Namespace):
     else:
         print("⚠️ No pairwise results to export")
     
-
-    # Final summary table
-    print("\n📊 Real Data Harmonization Summary")
-    summary_headers = ["Source Table", "Target Table", "Score", "Weight"]
-    print(tabulate(results, headers=summary_headers, tablefmt="fancy_grid"))
-    export_table_as_image(results, summary_headers, "RealData_Harmonization_Summary.png")
+    # Generate final summary tables
+    generate_final_summary_tables(results, detailed_matches, target_schema_results, all_approaches)
     
-    export_table_as_latex(
-        results, 
-        summary_headers, 
-        "RealData_Harmonization_Summary.tex",
-        caption="Real data harmonization summary across all source-target combinations",
-        label="tab:harmonization_summary"
-    )
-
-    # Export detailed matches as JSON
-    with open("output/real_data_detailed_matches.json", "w") as f:
-        json.dump(detailed_matches, f, indent=2)
-    print("✅ Real data detailed matcher results saved to output/real_data_detailed_matches.json")
-
-    # Create cross-dataset aggregation summary table (todo2.txt Step 2)
-    print("\n" + "="*80)
-    print("📋 CROSS-DATASET AGGREGATION SUMMARY (todo2.txt)")
-    print("="*80)
-    
-    if target_schema_results:
-        # Build aggregation table
-        aggregation_table = []
-        aggregation_headers = [
-            "Target Schema",
-            "GPT Acc", "GPT Score",
-            "Embed Acc", "Embed Score", 
-            "Cluster Acc", "Cluster Score",
-            "Majority Acc", "Majority Score",
-            "Weighted Acc", "Weighted Score"
-        ]
-        
-        # Calculate averages for each target schema
-        overall_stats = {name: {'accuracies': [], 'scores': []} for name in all_approaches}
-        
-        for target_name, data in target_schema_results.items():
-            row = [target_name]
-            
-            for approach_name in all_approaches:
-                accuracies = data['approach_accuracies'][approach_name]
-                scores = data['approach_scores'][approach_name]
-                
-                avg_accuracy = sum(accuracies) / len(accuracies) if accuracies else 0.0
-                avg_score = sum(scores) / len(scores) if scores else 0.0
-                
-                # Store for overall calculation
-                overall_stats[approach_name]['accuracies'].extend(accuracies)
-                overall_stats[approach_name]['scores'].extend(scores)
-                
-                row.extend([f"{avg_accuracy:.3f}", f"{avg_score:.3f}"])
-            
-            aggregation_table.append(row)
-        
-        # Add overall summary row across all target schemas
-        overall_row = ["Overall"]
-        for approach_name in all_approaches:
-            all_accuracies = overall_stats[approach_name]['accuracies']
-            all_scores = overall_stats[approach_name]['scores']
-            
-            overall_accuracy = sum(all_accuracies) / len(all_accuracies) if all_accuracies else 0.0
-            overall_score = sum(all_scores) / len(all_scores) if all_scores else 0.0
-            
-            overall_row.extend([f"{overall_accuracy:.3f}", f"{overall_score:.3f}"])
-        
-        aggregation_table.append(overall_row)
-        
-        print(tabulate(aggregation_table, headers=aggregation_headers, tablefmt="fancy_grid"))
-        
-        # Export aggregation table as image
-        export_table_as_image(aggregation_table, aggregation_headers, "CrossDataset_Aggregation_Summary.png")
-        
-        
-        print("✅ Cross-dataset aggregation table saved as image")
-        export_table_as_latex(
-            aggregation_table, 
-            aggregation_headers, 
-            "CrossDataset_Aggregation_Summary.tex",
-            caption="Cross-dataset aggregation summary",
-            label="tab:cross_dataset_aggregation"
-        )
-    else:
-        print("⚠️ No target schema results to aggregate")
-
-    # FINAL COMPREHENSIVE SUMMARY
-    print(f"\n" + "🎉" + "="*78 + "🎉")
-    print("🏁 HAMONIZE EVALUATION COMPLETE - FINAL SUMMARY")
-    print("🎉" + "="*78 + "🎉")
-    
-    # Summary statistics
-    total_datasets = len([r for r in all_triple_results if 'error' not in r])
-    total_pairwise = len(all_pairwise_results)
-    
-    print(f"📊 Evaluation Scope:")
-    print(f"   • {total_datasets} dataset pairs evaluated")
-    print(f"   • {total_pairwise} pairwise comparisons performed")
-    print(f"   • {len(results)} schema matching tasks completed")
-    
-    if all_triple_results and individual_rankings:
-        # Show complete individual matcher performance
-        sorted_individual = sorted(individual_rankings.items(), key=lambda x: x[1], reverse=True)
-        print(f"\n🏆 Individual Matcher Performance:")
-        for i, (matcher, accuracy) in enumerate(sorted_individual, 1):
-            medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉"
-            print(f"   {medal} {matcher}: {accuracy:.1%}")
-        
-        # Show pairwise champion with all pairs
-        if all_pairwise_results:
-            pairwise_perf = analyze_pairwise_champions(all_pairwise_results)
-            if pairwise_perf and 'error' not in pairwise_perf:
-                sorted_pairs = sorted(pairwise_perf.items(), key=lambda x: x[1]['avg_f1'], reverse=True)
-                print(f"\n🤝 Pairwise Agreement Performance:")
-                for i, (pair_name, metrics) in enumerate(sorted_pairs, 1):
-                    medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉"
-                    print(f"   {medal} {pair_name.replace('_', ' ')}: F1 {metrics['avg_f1']:.3f}")
-        
-        # Show ensemble performance
-        triple_analysis = analyze_triple_champions(all_triple_results)
-        if triple_analysis and 'error' not in triple_analysis:
-            ensemble_stats = triple_analysis.get('ensemble_stats', {})
-            majority_acc = ensemble_stats.get('majority_vote_accuracy', 0)
-            consensus_acc = ensemble_stats.get('consensus_accuracy', 0)
-            
-            print(f"\n🎯 Ensemble Performance:")
-            print(f"   🏆 Majority Vote: {majority_acc:.1%}")
-            print(f"   🤝 Consensus (All Agree): {consensus_acc:.1%}")
-        
-        # Overall champion summary (compact)
-        champion_individual = max(individual_rankings.items(), key=lambda x: x[1])
-        print(f"\n👑 OVERALL CHAMPIONS:")
-        print(f"   🏆 Best Matcher: {champion_individual[0]} ({champion_individual[1]:.1%})")
-        
-        if all_pairwise_results and pairwise_perf:
-            f1_champion = max(pairwise_perf.items(), key=lambda x: x[1]['avg_f1'])
-            print(f"   🤝 Best Pair: {f1_champion[0].replace('_', ' ')} (F1: {f1_champion[1]['avg_f1']:.3f})")
-        
-        if triple_analysis and 'error' not in triple_analysis:
-            print(f"   🎯 Best Ensemble: Majority Vote ({majority_acc:.1%})")
-        
-        # Best ensemble recommendation
-        print(f"\n✨ Recommended Approach: Ensemble methods")
-        print(f"   Use Majority Vote for robust predictions")
-        print(f"   Use Weighted Ensemble for confidence-aware results")
-    
-    print(f"\n📁 Generated Outputs:")
-    print(f"   📊 Pairwise comparison results: output/global_pairwise_comparison_results.*")
-    print(f"   🔀 Triple comparison summary: output/triple_comparison_global_summary.json")
-    print(f"   🏆 Individual matcher rankings: displayed above")
-    print(f"   📈 Cross-dataset aggregation: output/CrossDataset_Aggregation_Summary.*")
-    print(f"   📋 Detailed results: output/real_data_detailed_matches.json")
-    print(f"   🎯 LaTeX tables: output/*.tex files")
-    
-    print(f"\n✨ Analysis Complete! All results exported for thesis integration.")
-    print("🎉" + "="*78 + "🎉\n")
-
+    # Print final comprehensive summary
+    print_final_comprehensive_summary(all_triple_results, all_pairwise_results, results)
 
 
 async def main_all_expected(args: argparse.Namespace):
@@ -1515,43 +296,6 @@ async def main_core(source_table: str, target_table: str, expected_mapping: Opti
 
     return await main_core_inner(source_data, source_schema, target_schema, expected_mapping, seed=seed, output_name=output_name)
 
-
-def compare_mappings(old_mapping, new_mapping):
-    """
-    Compares two dictionaries and identifies:
-    - Unchanged mappings
-    - Changed mappings
-    - Newly added mappings
-    - Removed mappings
-    """
-    unchanged = {}
-    changed = {}
-    added = {}
-    removed = {}
-
-    for key in old_mapping:
-        if key in new_mapping:
-            if old_mapping[key] == new_mapping[key]:
-                unchanged[key] = old_mapping[key]
-            else:
-                changed[key] = (old_mapping[key], new_mapping[key])
-        else:
-            removed[key] = old_mapping[key]
-
-    for key in new_mapping:
-        if key not in old_mapping:
-            added[key] = new_mapping[key]
-
-    return {"unchanged": unchanged, "changed": changed, "added": added, "removed": removed}
-
-
-def calculate_individual_scores(expected_mapping: dict, target_schema: ObjectSchema) -> list:
-    """
-    Calculate detailed scores for each matcher approach against ground truth.
-    """
-    # This would be called after running the matchers
-    # For now, return empty list - you can enhance this based on your needs
-    return []
 
 
 async def main_core_inner_with_ensembles(source_data: Optional[pd.DataFrame], source_schema: ObjectSchema, target_schema: ObjectSchema, expected_mapping: Optional[dict[str, Optional[str]]] = None, seed: Optional[int] = None, output_name: Optional[str] = None):
