@@ -21,6 +21,7 @@ from schema_inference import infer_schema
 from gpt_utils import gpt_column_mapping
 from embedding_utils import embedding_column_mapping
 from clustering_matcher import clustering_matcher
+from core.utils.cluster_statistics import cluster_stats_collector
 
 async def run_pairwise_analysis():
     """
@@ -113,8 +114,13 @@ async def run_pairwise_analysis():
             print(f"   ✅ Embedding: {len(embedding_predictions)} predictions")
             
             print(f"🔗 Running Clustering matcher...")
-            clustering_predictions = clustering_matcher(source_schema, target_schema)
+            clustering_predictions, cluster_info = clustering_matcher(source_schema, target_schema, return_cluster_info=True)
             print(f"   ✅ Clustering: {len(clustering_predictions)} predictions")
+            print(f"   📊 Clusters used: {cluster_info['n_clusters_actual']}/{cluster_info['n_clusters_requested']}")
+            
+            # Collect cluster statistics
+            dataset_name = f"{source_table}_{target_table}"
+            cluster_stats_collector.add_cluster_info(cluster_info, dataset_name)
             
             # Check if any predictions exist
             total_predictions = len(gpt_predictions) + len(embedding_predictions) + len(clustering_predictions)

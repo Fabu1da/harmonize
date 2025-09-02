@@ -3,6 +3,7 @@ from typing import List
 from core.analyze_triple_champions import analyze_triple_champions
 from core.pairwise import analyze_pairwise_champions
 from core.rank import create_individual_matcher_ranking
+from core.utils.cluster_statistics import cluster_stats_collector
 
 
 def print_final_comprehensive_summary(all_triple_results: List, all_pairwise_results: List, results: List):
@@ -19,6 +20,9 @@ def print_final_comprehensive_summary(all_triple_results: List, all_pairwise_res
     print(f"   • {total_datasets} dataset pairs evaluated")
     print(f"   • {total_pairwise} pairwise comparisons performed")
     print(f"   • {len(results)} schema matching tasks completed")
+    
+    # Add cluster statistics
+    cluster_stats_collector.print_cluster_summary()
     
     if all_triple_results:
         # Show performance summaries

@@ -14,8 +14,8 @@ def load_data():
     base_dir = os.path.dirname(os.path.abspath(__file__))
 
     # Build absolute paths to the JSON files
-    coma_path = os.path.normpath(os.path.join(base_dir, '..', 'assets', 'output', 'matches.json'))
-    ham_path  = os.path.normpath(os.path.join(base_dir, '..', 'output', 'real_data_detailed_matches 2.json'))
+    coma_path = os.path.normpath(os.path.join(base_dir, '..', 'output', 'matches.json'))
+    ham_path  = os.path.normpath(os.path.join(base_dir, '..', 'output', 'real_data_detailed_matches.json'))
     gt_path  = os.path.normpath(os.path.join(base_dir, '..', 'expected'))
 
     # Load COMA results (simple matches) and fix European decimal format

@@ -14,7 +14,7 @@ def enrich_column(col, schema):
         return col  # fallback
 
 
-def clustering_matcher(source_schema, target_schema, n_clusters=None):
+def clustering_matcher(source_schema, target_schema, n_clusters=None, return_cluster_info=False):
     
     source_cols = list(source_schema.properties.keys())
     target_cols = list(target_schema.properties.keys())
@@ -36,6 +36,9 @@ def clustering_matcher(source_schema, target_schema, n_clusters=None):
     # Create index maps
     cluster_map = {col: labels[i] for i, col in enumerate(all_columns)}
     column_embeddings = {col: embedding_matrix[i] for i, col in enumerate(all_columns)}
+    
+    # Calculate actual clusters used
+    actual_clusters_used = len(set(labels))
 
     # Match each target to the closest source in the same cluster
     predicted_mapping = {}
@@ -70,4 +73,15 @@ def clustering_matcher(source_schema, target_schema, n_clusters=None):
         best_match, best_score = max(similarities, key=lambda x: x[1])
         predicted_mapping[tgt] = (best_match, round(best_score, 4))
 
+    if return_cluster_info:
+        cluster_info = {
+            'n_clusters_requested': n_clusters,
+            'n_clusters_actual': actual_clusters_used,
+            'total_columns': len(all_columns),
+            'source_columns': len(source_cols),
+            'target_columns': len(target_cols),
+            'cluster_assignments': cluster_map
+        }
+        return predicted_mapping, cluster_info
+    
     return predicted_mapping

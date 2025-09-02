@@ -130,3 +130,7 @@ dump
 *.md
 todo/
 *.tex
+*.zip
+paper/
+*.pki
+COMA/

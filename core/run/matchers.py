@@ -29,6 +29,8 @@ async def run_all_matchers(source_schema: Any, target_schema: Any, seed: int,
         threshold=0
     )
     
-    cluster_predicted = clustering_matcher.clustering_matcher(source_schema, target_schema)
+    cluster_predicted, cluster_info = clustering_matcher.clustering_matcher(source_schema, target_schema, return_cluster_info=True)
+    
+    # Note: cluster_info can be used here if needed for logging or stats collection
     
     return predicted_mapping, embed_predicted, cluster_predicted

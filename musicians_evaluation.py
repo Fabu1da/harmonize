@@ -138,16 +138,18 @@ async def evaluate_musicians_matching():
     # Clustering-based matcher
     print(f"\n🔄 Running Clustering Matcher...")
     try:
-        cluster_predicted = clustering_matcher(source_schema, target_schema)
+        cluster_predicted, cluster_info = clustering_matcher(source_schema, target_schema, return_cluster_info=True)
         unweighted_acc, weighted_acc = score_mapping(cluster_predicted, expected_mapping)
         results.append({
             'matcher': 'Clustering Matcher',
             'unweighted_accuracy': unweighted_acc,
             'weighted_accuracy': weighted_acc,
-            'predictions': cluster_predicted
+            'predictions': cluster_predicted,
+            'cluster_info': cluster_info
         })
         print(f"  📊 Unweighted Accuracy: {unweighted_acc:.3f}")
         print(f"  📊 Weighted Accuracy: {weighted_acc:.3f}")
+        print(f"  📊 Clusters used: {cluster_info['n_clusters_actual']}/{cluster_info['n_clusters_requested']}")
     except Exception as e:
         print(f"  ❌ Error running clustering matcher: {str(e)}")
         results.append({'matcher': 'Clustering Matcher', 'error': str(e)})

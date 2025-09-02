@@ -53,6 +53,7 @@ from run_pairwise_analysis import run_pairwise_analysis
 
 #core
 from core import  apply_rules, infer_rules
+from core.utils.cluster_statistics import cluster_stats_collector
 
 print(f"🔍 IMPORT DEBUG:")
 try:
@@ -332,7 +333,12 @@ async def main_core_inner_with_ensembles(source_data: Optional[pd.DataFrame], so
     
     
 
-    cluster_predicted = clustering_matcher(source_schema, target_schema)
+    cluster_predicted, cluster_info = clustering_matcher(source_schema, target_schema, return_cluster_info=True)
+    
+    # Collect cluster statistics
+    dataset_name = output_name if output_name else "unknown_dataset"
+    cluster_stats_collector.add_cluster_info(cluster_info, dataset_name)
+    
     # ADD THIS DEBUG BLOCK:
     # After cluster_predicted = clustering_matcher(...)
     print(f"\n🔍 CLUSTERING MATCHER DETAILED DEBUG:")
@@ -341,6 +347,9 @@ async def main_core_inner_with_ensembles(source_data: Optional[pd.DataFrame], so
     print(f"   Function called successfully: {cluster_predicted is not None}")
     print(f"   Return type: {type(cluster_predicted)}")
     print(f"   Clustering predictions count: {len(cluster_predicted) if cluster_predicted else 'None/Empty'}")
+    print(f"   Clusters requested: {cluster_info['n_clusters_requested']}")
+    print(f"   Clusters actually used: {cluster_info['n_clusters_actual']}")
+    print(f"   Total columns: {cluster_info['total_columns']}")
     print(f"   Clustering results: {cluster_predicted}")
     
     
@@ -441,7 +450,11 @@ async def main_core_inner(source_data: Optional[pd.DataFrame], source_schema: Ob
         threshold=0
     )
 
-    cluster_predicted = clustering_matcher(source_schema, target_schema)
+    cluster_predicted, cluster_info = clustering_matcher(source_schema, target_schema, return_cluster_info=True)
+    
+    # Collect cluster statistics  
+    dataset_name = output_name if output_name else "main_core_inner"
+    cluster_stats_collector.add_cluster_info(cluster_info, dataset_name)
     # gittables_predicted = gittables_matcher(list(target_schema.properties.keys()))  # <- GitTables matcher
 
     if expected_mapping is None:
