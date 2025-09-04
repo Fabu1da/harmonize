@@ -61,7 +61,15 @@ def calculate_triple_comparison_metrics(
         gt_source = ground_truth[col]
         
         # Get predictions (default to no match if missing)
-        gpt_pred, gpt_conf = gpt_predictions.get(col, ("—", 0.0))
+        gpt_tuple = gpt_predictions.get(col, ("—", 0.0))
+        if len(gpt_tuple) == 2:
+            gpt_pred, gpt_conf = gpt_tuple
+            gpt_reasoning = "Not available"
+        elif len(gpt_tuple) == 3:
+            gpt_pred, gpt_conf, gpt_reasoning = gpt_tuple
+        else:
+            gpt_pred, gpt_conf, gpt_reasoning = "—", 0.0, "Not available"
+            
         emb_pred, emb_conf = embedding_predictions.get(col, ("—", 0.0))
         clust_pred, clust_conf = clustering_predictions.get(col, ("—", 0.0))
         
@@ -91,6 +99,7 @@ def calculate_triple_comparison_metrics(
             'ground_truth': gt_source,
             'gpt_prediction': gpt_pred,
             'gpt_confidence': gpt_conf,
+            'gpt_reasoning': gpt_reasoning,
             'gpt_correct': gpt_correct,
             'embedding_prediction': emb_pred,
             'embedding_confidence': emb_conf,
@@ -237,19 +246,25 @@ def print_triple_comparison_table(triple_results: Dict[str, Any], source_table: 
     table_data = []
     headers = [
         "Target", "Ground Truth",
-        "GPT Pred", "GPT ✓", "GPT Conf",
+        "GPT Pred", "GPT ✓", "GPT Conf", "GPT Reasoning",
         "Emb Pred", "Emb ✓", "Emb Conf", 
         "Clust Pred", "Clust ✓", "Clust Conf",
         "Correct Count", "All Agree", "Majority ✓"
     ]
     
     for result in triple_results['detailed_results']:
+        # Truncate reasoning for table readability
+        reasoning_truncated = result.get('gpt_reasoning', 'N/A')
+        if len(reasoning_truncated) > 50:
+            reasoning_truncated = reasoning_truncated[:50] + "..."
+            
         row = [
             result['target_column'],
             result['ground_truth'],
             result['gpt_prediction'],
             "✅" if result['gpt_correct'] else "❌",
             f"{result['gpt_confidence']:.2f}",
+            reasoning_truncated,
             result['embedding_prediction'], 
             "✅" if result['embedding_correct'] else "❌",
             f"{result['embedding_confidence']:.2f}",

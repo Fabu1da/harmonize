@@ -21,10 +21,18 @@ class GPTConfidenceCalibrator:
         Collect raw GPT confidences and their corresponding match correctness.
         
         Args:
-            gpt_predictions: Dict[target_col: (source_col, confidence)]
+            gpt_predictions: Dict[target_col: (source_col, confidence, reasoning)]
             ground_truth: Dict[target_col: correct_source_col]
         """
-        for target_col, (predicted_source, raw_confidence) in gpt_predictions.items():
+        for target_col, prediction_tuple in gpt_predictions.items():
+            # Handle both 2-tuple and 3-tuple formats for backward compatibility
+            if len(prediction_tuple) == 2:
+                predicted_source, raw_confidence = prediction_tuple
+            elif len(prediction_tuple) == 3:
+                predicted_source, raw_confidence, reasoning = prediction_tuple
+            else:
+                continue  # Skip invalid formats
+                
             if target_col in ground_truth:
                 is_correct = (predicted_source == ground_truth[target_col])
                 self.calibration_data['raw_confidences'].append(raw_confidence)
@@ -81,15 +89,28 @@ class GPTConfidenceCalibrator:
         Apply calibration to all predictions in a mapping dict.
         
         Args:
-            gpt_predictions: Dict[target_col: (source_col, raw_confidence)]
+            gpt_predictions: Dict[target_col: (source_col, raw_confidence, reasoning)]
             
         Returns:
-            Dict[target_col: (source_col, calibrated_confidence)]
+            Dict[target_col: (source_col, calibrated_confidence, reasoning)]
         """
         calibrated = {}
-        for target_col, (source_col, raw_conf) in gpt_predictions.items():
+        for target_col, prediction_tuple in gpt_predictions.items():
+            # Handle both 2-tuple and 3-tuple formats for backward compatibility
+            if len(prediction_tuple) == 2:
+                source_col, raw_conf = prediction_tuple
+                reasoning = None
+            elif len(prediction_tuple) == 3:
+                source_col, raw_conf, reasoning = prediction_tuple
+            else:
+                continue  # Skip invalid formats
+                
             calibrated_conf = self.calibrate_confidence(raw_conf)
-            calibrated[target_col] = (source_col, calibrated_conf)
+            
+            if reasoning is not None:
+                calibrated[target_col] = (source_col, calibrated_conf, reasoning)
+            else:
+                calibrated[target_col] = (source_col, calibrated_conf)
         return calibrated
     
     def plot_calibration_curve(self, save_path: str = None):

@@ -43,24 +43,46 @@ class ColumnMapping(BaseModel):
     target_column: str
     source_column: Optional[str]
     confidence: float
+    reason: str = Field(description="Detailed explanation of mapping decision. For matches: explain semantic similarity and selection rationale. For non-matches: identify the closest potential source column, explain why it's closest, then specify why it's insufficient. Format: 'Closest match: [column] because [reason], but insufficient because [specific failings].'")  
 
 class ColumnMappings(BaseModel):
     mappings: list[ColumnMapping]
 
 async def gpt_column_mapping(source_schema: ObjectSchema, target_schema: ObjectSchema, seed: Optional[int] = None) -> dict[str, str]:
+    """
+    Enhanced GPT column mapping with detailed reasoning including closest match analysis.
+    
+    For no-match decisions, GPT will:
+    1. Identify the closest potential source column
+    2. Explain why it seems closest 
+    3. Specify why it's insufficient
+    4. Consider alternative candidates
+    5. Describe requirements for a valid match
+    """
     system_message = " ".join([
         "You are an expert in schema matching.",
         "For each target column, you identify the source column that best matches it.",
-        "Set the target column to null to not match it to any source column.",
+        "Set the source_column to null to not match it to any source column.",
         "You also provide a confidence score for each mapping.",
         "The confidence score is a float between 0.0 and 1.0.",
         "A score of 1.0 means a perfect match, and 0.0 means no match.",
+        "You also provide a detailed reason for each mapping decision.",
+        "For MATCHES: Explain the semantic similarity, naming patterns, data types, and why you chose this specific source column over others.",
+        "For NO MATCHES (null): Always identify the closest potential match from available source columns, explain why it's the closest, then explain specifically why it still doesn't qualify for a match.",
+        "Consider semantic meaning, data types, naming conventions, and domain context.",
+        "Be analytical and specific - avoid generic statements like 'no corresponding column'.",
+        "For no matches, structure your reasoning as: 'Closest match: [column_name] because [similarity reason], but insufficient because [specific reasons why it fails].'",
+        "Include your decision-making process and what would need to be present for a valid match."
     ])
     user_message = "".join([
         "### Source Schema:\n",
         f"{source_schema.model_dump_json(indent=4)}\n\n",
         "### Target Schema:\n",
-        f"{target_schema.model_dump_json(indent=4)}",
+        f"{target_schema.model_dump_json(indent=4)}\n\n",
+        "### Example Reasoning:\n",
+        "- For a match: 'birthDate matches birthDate due to identical naming and semantic meaning. Both represent date of birth with same data type. Considered other temporal fields but none as semantically precise.'\n",
+        "- For no match: 'Closest match: musicianLabel because it relates to musician identity and contains musician information, but insufficient because it stores the musician name as readable text rather than a unique numeric/alphanumeric identifier that musicianID requires. Secondary candidates: musician (represents person entity, not unique ID), birthDate (temporal data, semantically unrelated to identification). A valid match would need a field containing unique identifiers like numeric IDs or alphanumeric codes.'\n\n",
+        "Always identify the closest match for no-match decisions and explain the gap.",
     ])
 
     try:
@@ -75,7 +97,7 @@ async def gpt_column_mapping(source_schema: ObjectSchema, target_schema: ObjectS
             seed=seed,
         )
         mappings = response.choices[0].message.parsed
-        return {mapping.target_column: ((None if mapping.source_column == 'null' else mapping.source_column), mapping.confidence) for mapping in mappings.mappings}
+        return {mapping.target_column: ((None if mapping.source_column == 'null' else mapping.source_column), mapping.confidence, mapping.reason) for mapping in mappings.mappings}
     except Exception as e:
         print(f"Error during GPT request: {e}")
         return {target_column: None for target_column in target_schema.properties.keys()}

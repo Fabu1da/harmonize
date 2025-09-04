@@ -33,7 +33,15 @@ def update_target_schema_results(target_schema_results: Dict, target_table: str,
         confidence_weighted_score = 0.0
         for col, expected_src in evaluation_mapping.items():
             if col in predictions:
-                predicted_src, confidence = predictions[col]
+                prediction_tuple = predictions[col]
+                # Handle both 2-tuple and 3-tuple formats
+                if len(prediction_tuple) == 2:
+                    predicted_src, confidence = prediction_tuple
+                elif len(prediction_tuple) == 3:
+                    predicted_src, confidence, reasoning = prediction_tuple
+                else:
+                    continue  # Skip invalid formats
+                    
                 is_correct = (predicted_src == expected_src)
                 confidence_weighted_score += confidence if is_correct else -confidence
         

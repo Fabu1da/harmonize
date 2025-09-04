@@ -37,7 +37,7 @@ logging.basicConfig(
 
 import pandas as pd
 from tqdm import tqdm
-import matplotlib.pyplot as pltØ
+import matplotlib.pyplot as plt
 
 from gpt_utils import gpt_column_mapping
 from json_schema import ObjectSchema
@@ -303,11 +303,16 @@ async def main_core_inner_with_ensembles(source_data: Optional[pd.DataFrame], so
     """
     Enhanced version of main_core_inner that includes ensemble evaluation with ground truth.
     """
-    # Get individual matcher predictions
-    predicted_mapping = await gpt_column_mapping(source_schema, target_schema, seed=seed)
+    # Get individual matcher predictions with reasoning
+    predicted_mapping_with_reasoning = await gpt_column_mapping(source_schema, target_schema, seed=seed)
     
+    # Extract just the mapping for compatibility with existing code
+    predicted_mapping = {k: (v[0], v[1]) for k, v in predicted_mapping_with_reasoning.items()}
     
-    print(f"\n🔍 GPT MATCHER DEBUG############################:")
+    print(f"\n🔍 GPT MATCHER DEBUG WITH REASONING:")
+    for target_col, (source_col, confidence, reasoning) in predicted_mapping_with_reasoning.items():
+        print(f"   {target_col} -> {source_col} (conf: {confidence:.3f})")
+        print(f"      Reasoning: {reasoning}")
     
     embed_predicted = embedding_column_mapping(
         source_columns=list(source_schema.properties.keys()),
@@ -375,7 +380,7 @@ async def main_core_inner_with_ensembles(source_data: Optional[pd.DataFrame], so
         comparison_table = []
         headers = [
             "Target", "Expected",
-            "GPT Match", "GPT Score",
+            "GPT Match", "GPT Score", "GPT Reasoning",
             "Embed Match", "Embed Score",
             "Cluster Match", "Cluster Score",
             "Majority Match", "Majority Score",
@@ -385,23 +390,40 @@ async def main_core_inner_with_ensembles(source_data: Optional[pd.DataFrame], so
         for col in target_schema.properties.keys():
             expected = expected_mapping.get(col, "—")
 
-            gpt_match, gpt_score = predicted_mapping.get(col, ("—", 0.0))
+            gpt_match, gpt_score, gpt_reasoning = predicted_mapping_with_reasoning.get(col, ("—", 0.0, "No reasoning available"))
             emb_match, emb_score = embed_predicted.get(col, ("—", 0.0))
             cluster_match, cluster_score = cluster_predicted.get(col, ("—", 0.0))
             majority_match, majority_score = majority_predicted.get(col, ("—", 0.0))
             weighted_match, weighted_score = weighted_predicted.get(col, ("—", 0.0))
             
+            # Truncate reasoning for table display
+            truncated_reasoning = gpt_reasoning[:40] + "..." if len(gpt_reasoning) > 40 else gpt_reasoning
+            
             comparison_table.append([
                 col, expected,
-                gpt_match, f"{gpt_score:.2f}",
+                gpt_match, f"{gpt_score:.2f}", truncated_reasoning,
                 emb_match, f"{emb_score:.2f}",
                 cluster_match, f"{cluster_score:.2f}",
                 majority_match, f"{majority_score:.2f}",
                 weighted_match, f"{weighted_score:.2f}"
             ])
 
-        print("\n📊 Complete Matcher Comparison (Including Ensembles)")
+        print("\n📊 Complete Matcher Comparison (Including GPT Reasoning)")
         print(tabulate(comparison_table, headers=headers, tablefmt="fancy_grid"))
+        
+        # Print detailed reasoning for each match
+        print("\n🧠 Detailed GPT Reasoning:")
+        print("=" * 60)
+        for col in target_schema.properties.keys():
+            if col in predicted_mapping_with_reasoning:
+                gpt_match, gpt_score, gpt_reasoning = predicted_mapping_with_reasoning[col]
+                expected = expected_mapping.get(col, "—")
+                correctness = "✅ CORRECT" if gpt_match == expected else "❌ INCORRECT"
+                print(f"\nTarget: {col}")
+                print(f"Expected: {expected} | Predicted: {gpt_match} | {correctness}")
+                print(f"Confidence: {gpt_score:.3f}")
+                print(f"Reasoning: {gpt_reasoning}")
+                print("-" * 40)
 
         # Calculate accuracy for each approach
         approaches = [
@@ -442,7 +464,10 @@ async def main_core_inner_with_ensembles(source_data: Optional[pd.DataFrame], so
 
 
 async def main_core_inner(source_data: Optional[pd.DataFrame], source_schema: ObjectSchema, target_schema: ObjectSchema, expected_mapping: Optional[dict[str, Optional[str]]] = None, seed: Optional[int] = None, output_name: Optional[str] = None):
-    predicted_mapping = await gpt_column_mapping(source_schema, target_schema, seed=seed)
+    predicted_mapping_with_reasoning = await gpt_column_mapping(source_schema, target_schema, seed=seed)
+    
+    # Extract just the mapping for compatibility with existing code
+    predicted_mapping = {k: (v[0], v[1]) for k, v in predicted_mapping_with_reasoning.items()}
     
     embed_predicted = embedding_column_mapping(
         source_columns=list(source_schema.properties.keys()),
@@ -467,7 +492,7 @@ async def main_core_inner(source_data: Optional[pd.DataFrame], source_schema: Ob
         comparison_table = []
         headers = [
             "Target", "Expected",
-            "GPT Match", "GPT Score",
+            "GPT Match", "GPT Score", "GPT Reasoning",
             "Embed Match", "Embed Score",
             "Cluster Match", "Cluster Score",
         ]
@@ -475,19 +500,36 @@ async def main_core_inner(source_data: Optional[pd.DataFrame], source_schema: Ob
         for col in target_schema.properties.keys():
             expected = expected_mapping.get(col, "—")
 
-
-            gpt_match, gpt_score = predicted_mapping.get(col, ("—", 0.0))
+            gpt_match, gpt_score, gpt_reasoning = predicted_mapping_with_reasoning.get(col, ("—", 0.0, "No reasoning available"))
             emb_match, emb_score = embed_predicted.get(col, ("—", 0.0))
             cluster_match, cluster_score = cluster_predicted.get(col, ("—", 0.0))
+            
+            # Truncate reasoning for table display
+            truncated_reasoning = gpt_reasoning[:40] + "..." if len(gpt_reasoning) > 40 else gpt_reasoning
+            
             comparison_table.append([
                 col, expected,
-                gpt_match, f"{gpt_score:.2f}",
+                gpt_match, f"{gpt_score:.2f}", truncated_reasoning,
                 emb_match, f"{emb_score:.2f}",
                 cluster_match, f"{cluster_score:.2f}"
             ])
 
-        print("\n📊 Combined Matcher Comparison (Including GitTables)")
+        print("\n📊 Combined Matcher Comparison (Including GPT Reasoning)")
         print(tabulate(comparison_table, headers=headers, tablefmt="fancy_grid"))
+        
+        # Print detailed reasoning for each match
+        print("\n🧠 Detailed GPT Reasoning:")
+        print("=" * 60)
+        for col in target_schema.properties.keys():
+            if col in predicted_mapping_with_reasoning:
+                gpt_match, gpt_score, gpt_reasoning = predicted_mapping_with_reasoning[col]
+                expected = expected_mapping.get(col, "—")
+                correctness = "✅ CORRECT" if gpt_match == expected else "❌ INCORRECT"
+                print(f"\nTarget: {col}")
+                print(f"Expected: {expected} | Predicted: {gpt_match} | {correctness}")
+                print(f"Confidence: {gpt_score:.3f}")
+                print(f"Reasoning: {gpt_reasoning}")
+                print("-" * 40)
 
         score = score_mapping(predicted_mapping, expected_mapping)
         weight = len(target_schema.properties.keys())

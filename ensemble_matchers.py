@@ -57,7 +57,15 @@ class MajorityVoteEnsembleModel:
             
             for predictions in all_predictions:
                 if target_col in predictions:
-                    source_col, conf = predictions[target_col]
+                    prediction_tuple = predictions[target_col]
+                    # Handle both 2-tuple and 3-tuple formats
+                    if len(prediction_tuple) == 2:
+                        source_col, conf = prediction_tuple
+                    elif len(prediction_tuple) == 3:
+                        source_col, conf, reasoning = prediction_tuple
+                    else:
+                        continue  # Skip invalid formats
+                        
                     if source_col and source_col != "—":
                         votes.append(source_col)
                         confidences.append(conf)
@@ -150,7 +158,15 @@ class WeightedScoreEnsembleModel:
             
             for predictions, weight in all_weighted_predictions:
                 if target_col in predictions:
-                    source_col, conf = predictions[target_col]
+                    prediction_tuple = predictions[target_col]
+                    # Handle both 2-tuple and 3-tuple formats
+                    if len(prediction_tuple) == 2:
+                        source_col, conf = prediction_tuple
+                    elif len(prediction_tuple) == 3:
+                        source_col, conf, reasoning = prediction_tuple
+                    else:
+                        continue  # Skip invalid formats
+                        
                     if source_col and source_col != "—":
                         weighted_score = conf * weight
                         if source_col in source_scores:

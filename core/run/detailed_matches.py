@@ -16,7 +16,15 @@ def collect_detailed_matches(detailed_matches: List, source_table: str, target_t
             ("majority", majority_predicted),
             ("weighted", weighted_predicted)
         ]:
-            match, sim = predictions.get(col, ("—", 0.0))
+            prediction_tuple = predictions.get(col, ("—", 0.0))
+            # Handle both 2-tuple and 3-tuple formats
+            if len(prediction_tuple) == 2:
+                match, sim = prediction_tuple
+            elif len(prediction_tuple) == 3:
+                match, sim, reasoning = prediction_tuple
+            else:
+                match, sim = "—", 0.0
+                
             if match not in ("—", None):
                 detailed_matches.append({
                     "source": f"real_{source_table}.{match}",

@@ -290,7 +290,15 @@ def score_mapping(predicted_mapping: dict[str, tuple[Optional[str], float]], exp
     
     for expected_key, expected_value in expected_mapping.items():
         if expected_key in predicted_mapping:
-            predicted_value, confidence = predicted_mapping[expected_key]
+            prediction_tuple = predicted_mapping[expected_key]
+            # Handle both 2-tuple and 3-tuple formats
+            if len(prediction_tuple) == 2:
+                predicted_value, confidence = prediction_tuple
+            elif len(prediction_tuple) == 3:
+                predicted_value, confidence, reasoning = prediction_tuple
+            else:
+                continue  # Skip invalid formats
+                
             if predicted_value == expected_value:
                 correct_predictions += 1
                 weighted_score += confidence

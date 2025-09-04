@@ -10,6 +10,32 @@ async def run_all_matchers(source_schema: Any, target_schema: Any, seed: int,
     # Run GPT matcher
     raw_gpt_predictions = await gpt_column_mapping(source_schema, target_schema, seed=seed)
     
+    # Display GPT reasoning
+    print(f"\n🔍 GPT MATCHER DEBUG WITH REASONING:")
+    for target_col, prediction_tuple in raw_gpt_predictions.items():
+        if len(prediction_tuple) == 3:
+            source_col, confidence, reasoning = prediction_tuple
+            print(f"   {target_col} -> {source_col} (conf: {confidence:.3f})")
+            print(f"      Reasoning: {reasoning}")
+        elif len(prediction_tuple) == 2:
+            source_col, confidence = prediction_tuple
+            print(f"   {target_col} -> {source_col} (conf: {confidence:.3f})")
+            print(f"      Reasoning: Not available")
+        else:
+            print(f"   {target_col} -> Invalid prediction format")
+    
+    # Also store raw predictions for detailed reasoning display later
+    print(f"\n📝 Detailed GPT Reasoning Analysis:")
+    print("=" * 60)
+    for target_col, prediction_tuple in raw_gpt_predictions.items():
+        if len(prediction_tuple) == 3:
+            source_col, confidence, reasoning = prediction_tuple
+            print(f"\n🎯 Target: {target_col}")
+            print(f"   Match: {source_col}")
+            print(f"   Confidence: {confidence:.3f}")
+            print(f"   Reasoning: {reasoning}")
+            print("-" * 40)
+    
     # Collect training data if we have ground truth
     if real_gt_mapping and gpt_calibrator:
         gpt_calibrator.collect_training_data(raw_gpt_predictions, real_gt_mapping)

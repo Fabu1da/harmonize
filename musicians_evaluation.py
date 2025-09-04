@@ -248,7 +248,15 @@ async def evaluate_musicians_matching():
         print("-" * 80)
         
         for target_col, expected_source in expected_mapping.items():
-            predicted_source, confidence = best_result['predictions'].get(target_col, (None, 0.0))
+            prediction_tuple = best_result['predictions'].get(target_col, (None, 0.0))
+            # Handle both 2-tuple and 3-tuple formats
+            if len(prediction_tuple) == 2:
+                predicted_source, confidence = prediction_tuple
+            elif len(prediction_tuple) == 3:
+                predicted_source, confidence, reasoning = prediction_tuple
+            else:
+                predicted_source, confidence = None, 0.0
+                
             is_match = "✓" if predicted_source == expected_source else "✗"
             print(f"{target_col:<20} {str(predicted_source):<20} {str(expected_source):<20} {is_match}")
     

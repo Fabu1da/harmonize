@@ -42,7 +42,7 @@ def build_comparison_table(target_schema: Any, real_gt_mapping: Optional[Dict],
     gt_type = "Real GT" if real_gt_mapping else "Synthetic GT"
     headers = [
         "Target", gt_type,
-        "GPT Match", "GPT Score",
+        "GPT Match", "GPT Score", "GPT Reasoning",
         "Embed Match", "Embed Score", 
         "Cluster Match", "Cluster Score",
         "Majority Match", "Majority Score",
@@ -53,7 +53,16 @@ def build_comparison_table(target_schema: Any, real_gt_mapping: Optional[Dict],
         # Use real ground truth if available, otherwise use synthetic
         ground_truth_for_col = real_gt_mapping.get(col, "—") if real_gt_mapping else expected_mapping.get(col, "—")
         
-        gpt_match, gpt_score = predicted_mapping.get(col, ("—", 0.0))
+        # Handle both 2-tuple and 3-tuple formats for GPT predictions
+        gpt_tuple = predicted_mapping.get(col, ("—", 0.0))
+        if len(gpt_tuple) == 2:
+            gpt_match, gpt_score = gpt_tuple
+            gpt_reasoning = "Not available"
+        elif len(gpt_tuple) == 3:
+            gpt_match, gpt_score, gpt_reasoning = gpt_tuple
+        else:
+            gpt_match, gpt_score, gpt_reasoning = "—", 0.0, "Not available"
+            
         emb_match, emb_score = embed_predicted.get(col, ("—", 0.0))
         cluster_match, cluster_score = cluster_predicted.get(col, ("—", 0.0))
         majority_match, majority_score = majority_predicted.get(col, ("—", 0.0))
@@ -66,9 +75,12 @@ def build_comparison_table(target_schema: Any, real_gt_mapping: Optional[Dict],
         majority_display = get_correctness_indicator(majority_match, ground_truth_for_col, majority_score)
         weighted_display = get_correctness_indicator(weighted_match, ground_truth_for_col, weighted_score)
         
+        # Truncate reasoning for table display (max 50 characters)
+        truncated_reasoning = gpt_reasoning[:50] + "..." if len(gpt_reasoning) > 50 else gpt_reasoning
+        
         comparison_table.append([
             col, ground_truth_for_col,
-            gpt_display, f"{gpt_score:.2f}",
+            gpt_display, f"{gpt_score:.2f}", truncated_reasoning,
             emb_display, f"{emb_score:.2f}",
             cluster_display, f"{cluster_score:.2f}",
             majority_display, f"{majority_score:.2f}",

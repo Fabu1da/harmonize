@@ -12,10 +12,10 @@ def generate_final_summary_tables(results: List, detailed_matches: List,
     """Generate final summary tables and exports"""
     # Final summary table
     print("\n📊 Real Data Harmonization Summary")
-    summary_headers = ["Source Table", "Target Table", "Score", "Weight"]
+    summary_headers = ["Source Table", "Target Table", "Score", "Weight"] #weight number of fields, F1 = 2 × (Precision × Recall) / (Precision + Recall)
     print(tabulate(results, headers=summary_headers, tablefmt="fancy_grid"))
     export_table_as_image(results, summary_headers, "RealData_Harmonization_Summary.png")
-    
+
     export_table_as_latex(
         results, summary_headers, "RealData_Harmonization_Summary.tex",
         caption="Real data harmonization summary across all source-target combinations",
