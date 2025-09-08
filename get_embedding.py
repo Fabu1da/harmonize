@@ -19,8 +19,10 @@ if os.path.exists(EMBEDDING_CACHE_FILE):
 else:
     EMBEDDING_CACHE = {}
 def get_embedding(text):
+    print("------>", text)
     """Generate or retrieve cached embedding for a column name."""
     if text in EMBEDDING_CACHE:
+        
         return np.array(EMBEDDING_CACHE[text])
     
     try:

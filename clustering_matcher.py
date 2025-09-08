@@ -3,15 +3,12 @@ from sklearn.cluster import KMeans
 from get_embedding import get_embedding
 
 def enrich_column(col, schema):
-    try:
-        prop = schema.properties.get(col)
-        if prop and hasattr(prop, "examples") and prop.examples:
-            example_str = ", ".join(map(str, prop.examples[:3]))
-        else:
-            example_str = ""
-        return f"{col}: {example_str}"
-    except Exception as e:
-        return col  # fallback
+    """
+    For better cache utilization, use just the column name.
+    The examples don't add significant value for clustering/similarity
+    but prevent cache hits, causing unnecessary API calls.
+    """
+    return col  # Use simple column name for cache efficiency
 
 
 def clustering_matcher(source_schema, target_schema, n_clusters=None, return_cluster_info=False):

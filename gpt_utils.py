@@ -6,10 +6,6 @@ from pydantic import BaseModel, Field
 
 from json_schema import ObjectSchema, Schema
 
-def get_embeddings(text, model="text-embedding-3-small"):
-    response = openai.embeddings.create(input=[text], model=model)
-    return response.data[0].embedding
-
 def compare_mappings(old_mapping, new_mapping):
     """
     Compares two dictionaries and identifies:
