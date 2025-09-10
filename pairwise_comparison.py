@@ -262,32 +262,54 @@ def print_triple_comparison_table(triple_results: Dict[str, Any], source_table: 
             result['target_column'],
             result['ground_truth'],
             result['gpt_prediction'],
-            "✅" if result['gpt_correct'] else "❌",
+            "✔" if result['gpt_correct'] else "✘",
             f"{result['gpt_confidence']:.2f}",
             reasoning_truncated,
             result['embedding_prediction'], 
-            "✅" if result['embedding_correct'] else "❌",
+            "✔" if result['embedding_correct'] else "✘",
             f"{result['embedding_confidence']:.2f}",
             result['clustering_prediction'],
-            "✅" if result['clustering_correct'] else "❌", 
+            "✔" if result['clustering_correct'] else "✘",
             f"{result['clustering_confidence']:.2f}",
             f"{result['correct_count']}/3",
-            "✅" if result['all_agree'] else "❌",
-            "✅" if result['majority_correct'] else "❌"
+            "✔" if result['all_agree'] else "✘",
+            "✔" if result['majority_correct'] else "✘"
         ]
         table_data.append(row)
     
-    from tabulate import tabulate
-    print(f"\n📋 Detailed Triple Comparison:")
-    print(tabulate(table_data, headers=headers, tablefmt="grid"))
+    # from tabulate import tabulate
+    
+    # print(f"\n📋 Detailed Triple Comparison:")
+    # print(tabulate(table_data, headers=headers, tablefmt="grid"))
     
     # P/R/F1 Summary Table (single combined row)
-    print(f"\n📊 Combined Precision, Recall, F1-Score:")
+    # print(f"\n📊 Combined Precision, Recall, F1-Score:")
     metrics_table_data = [
         ["Combined Average", f"{stats.get('combined_precision', 0):.3f}", f"{stats.get('combined_recall', 0):.3f}", f"{stats.get('combined_f1_score', 0):.3f}"]
     ]
     metrics_headers = ["Matcher", "Precision", "Recall", "F1-Score"]
-    print(tabulate(metrics_table_data, headers=metrics_headers, tablefmt="grid"))
+    # print(tabulate(metrics_table_data, headers=metrics_headers, tablefmt="grid"))
+    
+    # Calculate agreement counts from patterns
+    patterns = triple_results['patterns']
+    agreement_counts = {
+        'all_correct_count': len(patterns['all_correct']),     # 3/3 correct
+        'two_correct_count': len(patterns['two_correct']),     # 2/3 correct
+        'one_correct_count': len(patterns['one_correct']),     # 1/3 correct
+        'none_correct_count': len(patterns['none_correct'])    # 0/3 correct
+    }
+    
+    mainTable = {
+        "headers": headers,
+        "data": table_data
+    }
+    
+    metricsTable = {
+        "headers": metrics_headers,
+        "data": metrics_table_data
+    }
+    
+    return metricsTable, mainTable, agreement_counts
 
 def run_triple_comparison(
     gpt_predictions: Dict[str, Tuple[str, float]],

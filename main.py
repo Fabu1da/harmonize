@@ -144,6 +144,7 @@ async def main_test(args: argparse.Namespace):
     detailed_matches = []
     all_pairwise_results = []
     all_triple_results = []
+    agreement_counts = []
     target_schema_results = {}
     all_approaches = ["GPT", "Embedding", "Clustering", "Majority Vote", "Weighted Ensemble"]
 
@@ -162,8 +163,14 @@ async def main_test(args: argparse.Namespace):
             await process_single_source_target_pair(
                 source_csv_path, target_path, args, gpt_calibrator,
                 all_pairwise_results, all_triple_results, detailed_matches,
-                results, target_schema_results, all_approaches
+                results, target_schema_results, all_approaches,
+                agreement_counts
             )
+
+
+    print("\n🔍 Agreement Distribution Analysis Across All Comparisons")
+    print("=" * 60)
+    print(f"Total comparisons analyzed: {len(agreement_counts)}")
 
     # Generate global summaries
     generate_global_summaries(all_triple_results, all_pairwise_results)
@@ -178,6 +185,9 @@ async def main_test(args: argparse.Namespace):
         export_pairwise_results(all_pairwise_results, "complete_pairwise_analysis")
     else:
         print("⚠️ No pairwise results to export")
+        
+        
+    print("\n🔄 STEP 3 COMPLETE: Generating Final Summary Tables----->", agreement_counts)
     
     # Generate final summary tables
     generate_final_summary_tables(results, detailed_matches, target_schema_results, all_approaches)

@@ -27,6 +27,6 @@ def run_triple_analysis(gpt_predictions: Dict, embedding_predictions: Dict,
     triple_results['target_table'] = target_table
     
     print(f"📊 Triple Comparison Results for {source_table} → {target_table}")
-    print_triple_comparison_table(triple_results, source_table, target_table)
-    
-    return triple_results
+    metricsTable, mainTable, agreement_counts = print_triple_comparison_table(triple_results, source_table, target_table)
+
+    return triple_results, metricsTable, mainTable, agreement_counts

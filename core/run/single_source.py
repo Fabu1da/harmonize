@@ -23,7 +23,7 @@ async def process_single_source_target_pair(source_csv_path: str, target_path: s
                                            args: argparse.Namespace, gpt_calibrator: Any,
                                            all_pairwise_results: List, all_triple_results: List,
                                            detailed_matches: List, results: List,
-                                           target_schema_results: Dict, all_approaches: List):
+                                           target_schema_results: Dict, all_approaches: List, agreement_counts: List):
     """Process a single source-target schema pair"""
     # Load data and schemas
     source_table, source_data, source_schema = await load_source_data(source_csv_path)
@@ -43,20 +43,53 @@ async def process_single_source_target_pair(source_csv_path: str, target_path: s
     )
     
     # Run pairwise analysis
-    pairwise_results, pairwise_result_entry = run_pairwise_analysis(
+    pairwise_result_entry = run_pairwise_analysis(
         predicted_mapping, embed_predicted, cluster_predicted, source_table, target_table,
         real_gt_mapping  # Pass the real ground truth
     )
     all_pairwise_results.append(pairwise_result_entry)
     
     # Run triple analysis
-    triple_results = run_triple_analysis(
+    triple_results, metricsTable, mainTable, agreement_counts = run_triple_analysis(
         predicted_mapping, embed_predicted, cluster_predicted, 
         real_gt_mapping, source_table, target_table
     )
+    
+    print(agreement_counts)
+    
     if triple_results:
         all_triple_results.append(triple_results)
+        # Accumulate agreement counts
+        if not hasattr(process_single_source_target_pair, 'total_agreement_counts'):
+            process_single_source_target_pair.total_agreement_counts = {
+                'all_correct_count': 0,
+                'two_correct_count': 0, 
+                'one_correct_count': 0,
+                'none_correct_count': 0
+            }
+        
+        for key in agreement_counts:
+            process_single_source_target_pair.total_agreement_counts[key] += agreement_counts[key]
+            
+    print(f"\n📊 Triple Comparison Metrics for {source_table} → {target_table}")
+    print(tabulate(metricsTable["data"], headers=metricsTable["headers"], tablefmt="grid"))
     
+    print(f"\n📋 Detailed Triple Comparison for {source_table} → {target_table}")
+    print(tabulate(mainTable["data"], headers=mainTable["headers"], tablefmt="grid"))
+    
+    
+    # Export tables
+    print("Exporting Triple Comparison Results...")
+    
+    export_table_as_latex_landscape(
+        mainTable["data"], mainTable["headers"], f"Triple_Comparison_{source_table}_to_{target_table}.tex",
+        caption=f"Detailed Triple Comparison for {source_table} to {target_table}",
+        label=f"tab:triple_{source_table}_{target_table}"
+    )
+    export_table_as_image(
+        mainTable["data"], mainTable["headers"], f"Triple_Comparison_{source_table}_to_{target_table}.png"
+    )   
+
     # Create ensembles
     majority_ensemble, weighted_ensemble, majority_predicted, weighted_predicted = create_ensembles(
         predicted_mapping, embed_predicted, cluster_predicted, source_schema, target_schema
@@ -92,15 +125,15 @@ async def process_single_source_target_pair(source_csv_path: str, target_path: s
     )
     
     # Display and export results
-    print(f"\n📊 Complete Matcher Comparison for {source_table} → {target_table}")
-    export_table_as_latex_landscape(
-        comparison_table, headers, f"RealData_{source_table}_to_{target_table}.tex",
-        caption=f"Matcher comparison for {source_table} to {target_table}",
-        label=f"tab:{source_table}_{target_table}"
-    )
+    # print(f"\n📊 Complete Matcher Comparison for {source_table} → {target_table}")
+    # export_table_as_latex_landscape(
+    #     comparison_table, headers, f"RealData_{source_table}_to_{target_table}.tex",
+    #     caption=f"Matcher comparison for {source_table} to {target_table}",
+    #     label=f"tab:{source_table}_{target_table}"
+    # )
     
-    print(tabulate(comparison_table, headers=headers, tablefmt="fancy_grid"))
-    export_table_as_image(comparison_table, headers, f"RealData_{source_table}_to_{target_table}.png")
+    # print(tabulate(comparison_table, headers=headers, tablefmt="fancy_grid"))
+    # export_table_as_image(comparison_table, headers, f"RealData_{source_table}_to_{target_table}.png")
     
     # Calculate overall score for results summary
     score = score_mapping(predicted_mapping, evaluation_mapping)
