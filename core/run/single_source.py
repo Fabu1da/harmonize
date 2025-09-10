@@ -19,6 +19,19 @@ from tabulate import tabulate
 import logging
 
 
+def get_total_agreement_counts():
+    """Get the accumulated total agreement counts from all processed pairs"""
+    if hasattr(process_single_source_target_pair, 'total_agreement_counts'):
+        return process_single_source_target_pair.total_agreement_counts
+    return None
+
+
+def reset_total_agreement_counts():
+    """Reset the total agreement counts"""
+    if hasattr(process_single_source_target_pair, 'total_agreement_counts'):
+        delattr(process_single_source_target_pair, 'total_agreement_counts')
+
+
 async def process_single_source_target_pair(source_csv_path: str, target_path: str, 
                                            args: argparse.Namespace, gpt_calibrator: Any,
                                            all_pairwise_results: List, all_triple_results: List,
@@ -43,23 +56,26 @@ async def process_single_source_target_pair(source_csv_path: str, target_path: s
     )
     
     # Run pairwise analysis
-    pairwise_result_entry = run_pairwise_analysis(
+    pairwise_results, pairwise_result_entry = run_pairwise_analysis(
         predicted_mapping, embed_predicted, cluster_predicted, source_table, target_table,
         real_gt_mapping  # Pass the real ground truth
     )
     all_pairwise_results.append(pairwise_result_entry)
     
     # Run triple analysis
-    triple_results, metricsTable, mainTable, agreement_counts = run_triple_analysis(
+    triple_results, metricsTable, mainTable, current_agreement_counts = run_triple_analysis(
         predicted_mapping, embed_predicted, cluster_predicted, 
         real_gt_mapping, source_table, target_table
     )
     
-    print(agreement_counts)
+    print(current_agreement_counts)
     
     if triple_results:
         all_triple_results.append(triple_results)
-        # Accumulate agreement counts
+        # Add current agreement counts to the main agreement_counts list
+        agreement_counts.append(current_agreement_counts)
+        
+        # Also accumulate total agreement counts for easy access
         if not hasattr(process_single_source_target_pair, 'total_agreement_counts'):
             process_single_source_target_pair.total_agreement_counts = {
                 'all_correct_count': 0,
@@ -68,8 +84,8 @@ async def process_single_source_target_pair(source_csv_path: str, target_path: s
                 'none_correct_count': 0
             }
         
-        for key in agreement_counts:
-            process_single_source_target_pair.total_agreement_counts[key] += agreement_counts[key]
+        for key in current_agreement_counts:
+            process_single_source_target_pair.total_agreement_counts[key] += current_agreement_counts[key]
             
     print(f"\n📊 Triple Comparison Metrics for {source_table} → {target_table}")
     print(tabulate(metricsTable["data"], headers=metricsTable["headers"], tablefmt="grid"))

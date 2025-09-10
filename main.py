@@ -5,10 +5,11 @@ Main entry point for the system providing schema matching capabilities using
 GPT, embedding-based, and clustering-based approaches with pairwise comparison analysis.
 """
 
+from analysis import show_distribution
 from dotenv import load_dotenv
 
 from core.run.global_sumary import generate_global_summaries
-from core.run.single_source import process_single_source_target_pair
+from core.run.single_source import process_single_source_target_pair, get_total_agreement_counts, reset_total_agreement_counts
 
 from core.utils.comprehensive_summary import print_final_comprehensive_summary
 from core.utils.data import load_gpt_calibrator
@@ -151,6 +152,9 @@ async def main_test(args: argparse.Namespace):
     # Setup evaluation
     setup_evaluation()
     
+    # Reset agreement counts from any previous runs
+    reset_total_agreement_counts()
+    
     # Load GPT calibrator
     gpt_calibrator = await load_gpt_calibrator()
 
@@ -171,6 +175,27 @@ async def main_test(args: argparse.Namespace):
     print("\n🔍 Agreement Distribution Analysis Across All Comparisons")
     print("=" * 60)
     print(f"Total comparisons analyzed: {len(agreement_counts)}")
+    
+    # Get total accumulated agreement counts
+    total_agreement_counts = get_total_agreement_counts()
+    if total_agreement_counts:
+        print("\n📊 Total Agreement Counts Across All Comparisons:")
+        print(f"  All 3 matchers correct: {total_agreement_counts['all_correct_count']}")
+        print(f"  Exactly 2 matchers correct: {total_agreement_counts['two_correct_count']}")
+        print(f"  Exactly 1 matcher correct: {total_agreement_counts['one_correct_count']}")
+        print(f"  No matchers correct: {total_agreement_counts['none_correct_count']}")
+        
+        total_predictions = sum(total_agreement_counts.values())
+        if total_predictions > 0:
+            print(f"\n📈 Agreement Percentages:")
+            print(f"  All 3 correct: {total_agreement_counts['all_correct_count']/total_predictions*100:.1f}%")
+            print(f"  2 correct: {total_agreement_counts['two_correct_count']/total_predictions*100:.1f}%")
+            print(f"  1 correct: {total_agreement_counts['one_correct_count']/total_predictions*100:.1f}%")
+            print(f"  0 correct: {total_agreement_counts['none_correct_count']/total_predictions*100:.1f}%")
+    
+    print(f"\n📋 Individual Agreement Counts per Source-Target Pair:")
+    for i, counts in enumerate(agreement_counts):
+        print(f"  Pair {i+1}: {counts}")
 
     # Generate global summaries
     generate_global_summaries(all_triple_results, all_pairwise_results)
@@ -188,7 +213,9 @@ async def main_test(args: argparse.Namespace):
         
         
     print("\n🔄 STEP 3 COMPLETE: Generating Final Summary Tables----->", agreement_counts)
-    
+
+    show_distribution(agreement_counts)
+
     # Generate final summary tables
     generate_final_summary_tables(results, detailed_matches, target_schema_results, all_approaches)
     

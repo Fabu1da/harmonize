@@ -500,12 +500,16 @@ def print_pairwise_comparison_table(
         return table_data, headers
     
 def export_pairwise_results(comparison_results: List[Dict], filename: str = "pairwise_comparison_results"):
+    
         """Export all pairwise comparison results"""
         
         # Create summary table across all datasets
         summary_data = []
         
         for result in comparison_results:
+            
+            print("------####", result)
+            
             source = result["source_table"]
             target = result["target_table"]
             
