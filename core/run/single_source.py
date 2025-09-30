@@ -63,14 +63,15 @@ async def process_single_source_target_pair(source_csv_path: str, target_path: s
     all_pairwise_results.append(pairwise_result_entry)
     
     # Run triple analysis
-    triple_results, metricsTable, mainTable, current_agreement_counts = run_triple_analysis(
+    triple_analysis_result = run_triple_analysis(
         predicted_mapping, embed_predicted, cluster_predicted, 
         real_gt_mapping, source_table, target_table
     )
     
-    print(current_agreement_counts)
-    
-    if triple_results:
+    if triple_analysis_result is not None:
+        triple_results, metricsTable, mainTable, current_agreement_counts = triple_analysis_result
+        print(current_agreement_counts)
+        
         all_triple_results.append(triple_results)
         # Add current agreement counts to the main agreement_counts list
         agreement_counts.append(current_agreement_counts)
@@ -87,24 +88,31 @@ async def process_single_source_target_pair(source_csv_path: str, target_path: s
         for key in current_agreement_counts:
             process_single_source_target_pair.total_agreement_counts[key] += current_agreement_counts[key]
             
-    print(f"\n📊 Triple Comparison Metrics for {source_table} → {target_table}")
-    print(tabulate(metricsTable["data"], headers=metricsTable["headers"], tablefmt="grid"))
+        print(f"\n📊 Triple Comparison Metrics for {source_table} → {target_table}")
+        print(tabulate(metricsTable["data"], headers=metricsTable["headers"], tablefmt="grid"))
+        
+        print(f"\n📋 Detailed Triple Comparison for {source_table} → {target_table}")
+        print(tabulate(mainTable["data"], headers=mainTable["headers"], tablefmt="grid"))
+    else:
+        print("⚠️ Skipping triple analysis due to missing ground truth")
+        current_agreement_counts = None
+        metricsTable = None
+        mainTable = None
     
-    print(f"\n📋 Detailed Triple Comparison for {source_table} → {target_table}")
-    print(tabulate(mainTable["data"], headers=mainTable["headers"], tablefmt="grid"))
-    
-    
-    # Export tables
-    print("Exporting Triple Comparison Results...")
-    
-    export_table_as_latex_landscape(
-        mainTable["data"], mainTable["headers"], f"Triple_Comparison_{source_table}_to_{target_table}.tex",
-        caption=f"Detailed Triple Comparison for {source_table} to {target_table}",
-        label=f"tab:triple_{source_table}_{target_table}"
-    )
-    export_table_as_image(
-        mainTable["data"], mainTable["headers"], f"Triple_Comparison_{source_table}_to_{target_table}.png"
-    )   
+    # Export tables (only if triple analysis was successful)
+    if mainTable is not None:
+        print("Exporting Triple Comparison Results...")
+        
+        export_table_as_latex_landscape(
+            mainTable["data"], mainTable["headers"], f"Triple_Comparison_{source_table}_to_{target_table}.tex",
+            caption=f"Detailed Triple Comparison for {source_table} to {target_table}",
+            label=f"tab:triple_{source_table}_{target_table}"
+        )
+        export_table_as_image(
+            mainTable["data"], mainTable["headers"], f"Triple_Comparison_{source_table}_to_{target_table}.png"
+        )   
+    else:
+        print("⚠️ Skipping triple comparison table export (no ground truth available)")
 
     # Create ensembles
     majority_ensemble, weighted_ensemble, majority_predicted, weighted_predicted = create_ensembles(

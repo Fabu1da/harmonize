@@ -70,7 +70,76 @@ except ImportError as e:
     print(f"   ❌ clustering_matcher import failed: {e}")
 
 
-
+def save_reasoning_to_json(predicted_mapping_with_reasoning, expected_mapping=None, output_name=None, source_schema=None, target_schema=None):
+    """
+    Save GPT reasoning data to a structured JSON file.
+    
+    Args:
+        predicted_mapping_with_reasoning: Dict with structure {target_col: (source_col, confidence, reasoning)}
+        expected_mapping: Optional ground truth mapping for correctness analysis
+        output_name: Optional base name for the output file
+        source_schema: Optional source schema for metadata
+        target_schema: Optional target schema for metadata
+    """
+    from datetime import datetime
+    
+    # Create output directory if it doesn't exist
+    os.makedirs("./output/reasoning", exist_ok=True)
+    
+    # Generate filename with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    base_name = output_name if output_name else "reasoning"
+    filename = f"./output/reasoning/{base_name}_{timestamp}.json"
+    
+    # Structure the reasoning data
+    reasoning_data = {
+        "metadata": {
+            "timestamp": datetime.now().isoformat(),
+            "source_schema_columns": list(source_schema.properties.keys()) if source_schema else None,
+            "target_schema_columns": list(target_schema.properties.keys()) if target_schema else None,
+            "total_mappings": len(predicted_mapping_with_reasoning),
+            "has_ground_truth": expected_mapping is not None
+        },
+        "mappings": []
+    }
+    
+    # Process each mapping with reasoning
+    for target_col, (source_col, confidence, reasoning) in predicted_mapping_with_reasoning.items():
+        mapping_entry = {
+            "target_column": target_col,
+            "predicted_source_column": source_col,
+            "confidence": float(confidence),
+            "reasoning": reasoning
+        }
+        
+        # Add ground truth comparison if available
+        if expected_mapping:
+            expected_source = expected_mapping.get(target_col)
+            mapping_entry["expected_source_column"] = expected_source
+            mapping_entry["is_correct"] = source_col == expected_source
+        
+        reasoning_data["mappings"].append(mapping_entry)
+    
+    # Calculate summary statistics if ground truth is available
+    if expected_mapping:
+        correct_mappings = sum(1 for mapping in reasoning_data["mappings"] if mapping.get("is_correct", False))
+        total_mappings = len(reasoning_data["mappings"])
+        accuracy = correct_mappings / total_mappings if total_mappings > 0 else 0.0
+        avg_confidence = sum(mapping["confidence"] for mapping in reasoning_data["mappings"]) / total_mappings if total_mappings > 0 else 0.0
+        
+        reasoning_data["summary"] = {
+            "accuracy": accuracy,
+            "correct_mappings": correct_mappings,
+            "total_mappings": total_mappings,
+            "average_confidence": avg_confidence
+        }
+    
+    # Save to JSON file
+    with open(filename, 'w', encoding='utf-8') as f:
+        json.dump(reasoning_data, f, indent=2, ensure_ascii=False)
+    
+    print(f"\n💾 GPT Reasoning saved to: {filename}")
+    return filename
 
 
 def get_correctness_indicator(predicted_source, ground_truth_source, confidence=0.0):
@@ -351,6 +420,13 @@ async def main_core_inner_with_ensembles(source_data: Optional[pd.DataFrame], so
         print(f"   {target_col} -> {source_col} (conf: {confidence:.3f})")
         print(f"      Reasoning: {reasoning}")
     
+    save_reasoning_to_json(
+        predicted_mapping_with_reasoning, 
+        expected_mapping, 
+        output_name, 
+        source_schema, 
+        target_schema
+    )
     embed_predicted = embedding_column_mapping(
         source_columns=list(source_schema.properties.keys()),
         target_columns=list(target_schema.properties.keys()),
@@ -518,6 +594,15 @@ async def main_core_inner(source_data: Optional[pd.DataFrame], source_schema: Ob
     dataset_name = output_name if output_name else "main_core_inner"
     cluster_stats_collector.add_cluster_info(cluster_info, dataset_name)
     # gittables_predicted = gittables_matcher(list(target_schema.properties.keys()))  # <- GitTables matcher
+
+    # Save GPT reasoning to JSON file
+    save_reasoning_to_json(
+        predicted_mapping_with_reasoning, 
+        expected_mapping, 
+        output_name, 
+        source_schema, 
+        target_schema
+    )
 
     if expected_mapping is None:
         conf_sum = sum(conf for _, conf in predicted_mapping.values())
