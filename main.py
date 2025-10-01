@@ -83,6 +83,15 @@ def save_reasoning_to_json(predicted_mapping_with_reasoning, expected_mapping=No
     """
     from datetime import datetime
     
+    # Debug: Check if function is called and what data it receives
+    print(f"\n🔍 DEBUG: save_reasoning_to_json called")
+    print(f"   - Reasoning data keys: {list(predicted_mapping_with_reasoning.keys()) if predicted_mapping_with_reasoning else 'None'}")
+    print(f"   - Output name: {output_name}")
+    
+    if not predicted_mapping_with_reasoning:
+        print(f"   ⚠️  No reasoning data to save")
+        return
+    
     # Create output directory if it doesn't exist
     os.makedirs("./output/reasoning", exist_ok=True)
     
@@ -139,6 +148,9 @@ def save_reasoning_to_json(predicted_mapping_with_reasoning, expected_mapping=No
         json.dump(reasoning_data, f, indent=2, ensure_ascii=False)
     
     print(f"\n💾 GPT Reasoning saved to: {filename}")
+    print(f"   📊 Total mappings with reasoning: {len(reasoning_data['mappings'])}")
+    
+    return filename
     return filename
 
 
@@ -186,6 +198,11 @@ async def main(args: argparse.ArgumentParser):
     """Main entry point for the harmonize system."""
     os.chdir(os.path.dirname(__file__))
     
+    # Check if user wants to run quiet test mode
+    if getattr(args, 'quiet', False):
+        await main_test_quiet(args)
+        return
+    
     # Check if user wants to run pairwise analysis
     if getattr(args, 'pairwise', False):
         logging.info("Running Step 2: Pairwise Matcher Analysis...")
@@ -204,10 +221,36 @@ gpt_calibrator = GPTConfidenceCalibrator()
 
 
 
+async def main_test_quiet(args: argparse.Namespace):
+    """
+    Quiet test mode for final evaluation - suppresses verbose output.
+    """
+    # Process single specified pair
+    if not (args.source_table and args.target_table):
+        print("❌ Quiet mode requires --source-table and --target-table")
+        return
+    
+    print(f"🔄 Evaluating {args.source_table} → {args.target_table}")
+    
+    # Temporarily suppress logging to reduce output
+    original_level = logging.getLogger().level
+    logging.getLogger().setLevel(logging.ERROR)
+    
+    try:
+        # Use the normal main_test but with suppressed logging
+        await main_test(args)
+        print(f"✅ Test evaluation completed for {args.source_table} → {args.target_table}")
+    finally:
+        # Restore original logging level
+        logging.getLogger().setLevel(original_level)
+    
+    return True
+
+
 async def main_test(args: argparse.Namespace):
     """
-    Refactored main_test function broken into smaller components.
-    Enhanced main_test that uses synthetic data as ground truth for real source data evaluation.
+    Enhanced main_test that can process either specific source/target files or all files.
+    Uses synthetic data as ground truth for real source data evaluation.
     """
     # Initialize data structures
     results = []
@@ -227,17 +270,36 @@ async def main_test(args: argparse.Namespace):
     # Load GPT calibrator
     gpt_calibrator = await load_gpt_calibrator()
 
-    # Process all source CSV files
-    for source_csv_path in sorted(glob.glob("./assets/source/*.csv")):
+    # Determine which files to process
+    if args.source_table and args.target_table:
+        # Process single specified pair
+        logging.info(f"📁 Processing specified pair: {args.source_table} → {args.target_table}")
+        source_paths = [args.source_table]
+        target_paths = [args.target_table]
+    else:
+        # Process all files (original behavior)
+        source_paths = sorted(glob.glob(f"{args.source_dir}/*.csv"))
+        target_paths = sorted(glob.glob(f"{args.target_dir}/*.json"))
+
+    # Process source files
+    for source_csv_path in source_paths:
         logging.info(f"📁 Processing source: {source_csv_path}")
         
-        # Process all target JSON schemas for this source
-        for target_path in tqdm(sorted(glob.glob("./assets/target/*.json", recursive=True))):
+        # Process target files for this source
+        if args.source_table and args.target_table:
+            # Single pair mode - process only the specified target
+            # Construct full path for the target file
+            target_paths_for_source = [f"{args.target_dir}/{args.target_table}.json"]
+        else:
+            # All files mode - process all targets for each source
+            target_paths_for_source = target_paths
+            
+        for target_path in tqdm(target_paths_for_source):
             await process_single_source_target_pair(
                 source_csv_path, target_path, args, gpt_calibrator,
                 all_pairwise_results, all_triple_results, detailed_matches,
                 results, target_schema_results, all_approaches,
-                agreement_counts
+                agreement_counts, args.source_dir, args.target_dir, args.expected_dir
             )
 
 
@@ -296,11 +358,11 @@ async def main_all_expected(args: argparse.Namespace):
     score_sum = 0
     weight_sum = 0
 
-    for expected_path in tqdm(sorted(glob.glob("**/*.json", root_dir="./assets/expected", recursive=True))):
+    for expected_path in tqdm(sorted(glob.glob("**/*.json", root_dir="./assets/test/expected", recursive=True))):
         print(flush=True)
         expected_name, _ = os.path.splitext(expected_path)
 
-        with open(f"./assets/expected/{expected_name}.json") as f:
+        with open(f"./assets/test/expected/{expected_name}.json") as f:
             expectation = json.load(f)
 
         source_table = expectation["source_table"]
@@ -315,7 +377,7 @@ async def main_all_expected(args: argparse.Namespace):
         print("[INFO]", expected_name, source_table, target_table)
         print("Expected Mapping:", expected_mapping)
         
-        predicted_mapping, score, weight = await main_core(source_table, target_table, expected_mapping, seed=args.seed, output_name=args.output_name)
+        predicted_mapping, score, weight = await main_core(source_table, target_table, expected_mapping, seed=args.seed, output_name=args.output_name, source_dir=args.source_dir, target_dir=args.target_dir)
         score_sum += score[0] * weight
         weight_sum += weight
 
@@ -327,7 +389,7 @@ async def main_synthetic(args: argparse.ArgumentParser):
     score_sum = 0
     weight_sum = 0
 
-    target_files = sorted(glob.glob("**/*.json", root_dir="./assets/target", recursive=True))
+    target_files = sorted(glob.glob("**/*.json", root_dir=args.target_dir, recursive=True))
     print(f"🔍 Found {len(target_files)} target files: {target_files}")
 
     for target_path in tqdm(target_files):
@@ -335,7 +397,7 @@ async def main_synthetic(args: argparse.ArgumentParser):
         print(flush=True)
         target_table, _ = os.path.splitext(target_path)
 
-        full_path = f"./assets/target/{target_path}"
+        full_path = f"{args.target_dir}/{target_path}"
         print(f"📁 Reading: {full_path}")
         
         try:
@@ -357,8 +419,8 @@ async def main_synthetic(args: argparse.ArgumentParser):
         # print("Expected Mapping:", expected_mapping)
         
         out_name = f"{target_table.replace('/', '_')}__synthetic.json"
-        os.makedirs("./assets/expected", exist_ok=True)
-        with open(f"./assets/expected/{out_name}", "w") as f:
+        os.makedirs("./assets/test/expected", exist_ok=True)
+        with open(f"./assets/test/expected/{out_name}", "w") as f:
             json.dump({
                 "source_table": target_table + "_synthetic",
                 "target_table": target_table,
@@ -384,10 +446,10 @@ async def main_synthetic(args: argparse.ArgumentParser):
     return overall_score
 
 
-async def main_core(source_table: str, target_table: str, expected_mapping: Optional[dict[str, Optional[str]]] = None, seed: Optional[int] = None, output_name: Optional[str] = None):
-    source_data = pd.read_csv(f"./assets/source/{source_table}.csv")
-    source_schema_path = f"./assets/source/{source_table}.json"
-    target_schema_path = f"./assets/target/{target_table}.json"
+async def main_core(source_table: str, target_table: str, expected_mapping: Optional[dict[str, Optional[str]]] = None, seed: Optional[int] = None, output_name: Optional[str] = None, source_dir: str = "./assets/test/source", target_dir: str = "./assets/test/target"):
+    source_data = pd.read_csv(f"{source_dir}/{source_table}.csv")
+    source_schema_path = f"{source_dir}/{source_table}.json"
+    target_schema_path = f"{target_dir}/{target_table}.json"
 
     if os.path.exists(source_schema_path):
         with open(source_schema_path) as f:
@@ -399,7 +461,7 @@ async def main_core(source_table: str, target_table: str, expected_mapping: Opti
     with open(target_schema_path) as f:
         target_schema = ObjectSchema.model_validate_json(f.read())
 
-    #expected_data = pd.read_csv(f"./assets/expected/{expected_name}.csv")
+    #expected_data = pd.read_csv(f"./assets/test/expected/{expected_name}.csv")
 
     return await main_core_inner(source_data, source_schema, target_schema, expected_mapping, seed=seed, output_name=output_name)
 
@@ -677,7 +739,55 @@ if __name__ == "__main__":
     
     # pairwise analysis
     parser.add_argument("--pairwise", action="store_true", help="Run Step 2: Pairwise matcher comparison analysis")
+    
+    # test mode (quiet evaluation)
+    parser.add_argument("--quiet", action="store_true", help="Run in quiet test mode (minimal output)")
+    
+    # ensemble weight training
+    parser.add_argument("--training", action="store_true", help="Train optimal ensemble weights using current results")
+    
+    # configurable data directories
+    parser.add_argument("--source-dir", default="./assets/test/source", help="Directory containing source CSV files")
+    parser.add_argument("--target-dir", default="./assets/test/target", help="Directory containing target JSON schema files")
+    parser.add_argument("--expected-dir", default="./assets/test/expected", help="Directory containing expected ground truth mapping files")
 
     
     args = parser.parse_args()
-    asyncio.run(main(args))
+    
+    # Handle training mode
+    if args.training:
+        from ensemble_weight_trainer import EnsembleWeightTrainer
+        print("🚂 Training Mode: Optimizing ensemble weights")
+        print("=" * 50)
+        
+        trainer = EnsembleWeightTrainer()
+        
+        # Check if we have results to train on
+        if os.path.exists("output/real_data_detailed_matches.json"):
+            # Add current results as training data
+            dataset_name = f"training_run_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}"
+            trainer.add_training_data("output/real_data_detailed_matches.json", dataset_name)
+            
+            # Train optimal weights
+            training_results = trainer.train_weights(validation_split=0.3)
+            
+            # Show optimal weights for reference
+            optimal = trainer.get_optimal_weights()
+            if optimal:
+                print(f"\n🎯 TRAINING COMPLETE!")
+                print(f"✅ Optimal weights saved and will be used automatically:")
+                print(f"   • GPT: {optimal['gpt_weight']}")
+                print(f"   • Embedding: {optimal['embed_weight']}")
+                print(f"   • Clustering: {optimal['cluster_weight']}")
+                print(f"   • Configuration: {optimal['config_name']}")
+                print(f"   • Validation Score: {optimal['val_score']:.3f}")
+                print(f"\n📄 Next Steps:")
+                print(f"   • Run your normal pipeline - trained weights load automatically")
+                print(f"   • Training results saved in assets/training/training/results/")
+        else:
+            print("❌ No training data found!")
+            print("💡 Run your normal pipeline first to generate training data:")
+            print("   python3 main.py --source-table <source> --target-table <target>")
+    else:
+        # Normal pipeline execution
+        asyncio.run(main(args))

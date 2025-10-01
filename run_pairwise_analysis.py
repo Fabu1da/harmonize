@@ -34,10 +34,10 @@ async def run_pairwise_analysis():
     print("=" * 60)
     
     # Process all source-target combinations
-    for source_csv_path in sorted(glob.glob("./assets/source/*.csv")):
+    for source_csv_path in sorted(glob.glob("./assets/test/source/*.csv")):
         source_table = Path(source_csv_path).stem
         source_data = pd.read_csv(source_csv_path)
-        source_schema_path = f"./assets/source/{source_table}.json"
+        source_schema_path = f"./assets/test/source/{source_table}.json"
         
         # Load or infer source schema
         if os.path.exists(source_schema_path):
@@ -50,7 +50,7 @@ async def run_pairwise_analysis():
         
         print(f"🔍 Source columns: {list(source_schema.properties.keys())[:5]}...")  # Show first 5
         
-        for target_path in tqdm(sorted(glob.glob("./assets/target/*.json", recursive=True))):
+        for target_path in tqdm(sorted(glob.glob("./assets/test/target/*.json", recursive=True))):
             target_table, _ = os.path.splitext(os.path.basename(target_path))
             
             with open(target_path) as f:
@@ -62,7 +62,7 @@ async def run_pairwise_analysis():
             
             # Load ground truth if available
             target_prefix = "_".join(target_table.split("_")[:2])
-            real_gt_path = f"./assets/expected/{target_prefix}_mapping.json"
+            real_gt_path = f"./assets/test/expected/{target_prefix}_mapping.json"
             ground_truth = None
             
             # Check for ground truth file

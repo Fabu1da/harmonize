@@ -36,10 +36,11 @@ async def process_single_source_target_pair(source_csv_path: str, target_path: s
                                            args: argparse.Namespace, gpt_calibrator: Any,
                                            all_pairwise_results: List, all_triple_results: List,
                                            detailed_matches: List, results: List,
-                                           target_schema_results: Dict, all_approaches: List, agreement_counts: List):
+                                           target_schema_results: Dict, all_approaches: List, agreement_counts: List,
+                                           source_dir: str = "./assets/test/source", target_dir: str = "./assets/test/target", expected_dir: str = "./assets/test/expected"):
     """Process a single source-target schema pair"""
     # Load data and schemas
-    source_table, source_data, source_schema = await load_source_data(source_csv_path)
+    source_table, source_data, source_schema = await load_source_data(source_csv_path, source_dir)
     target_table, target_schema = load_target_schema(target_path)
     
     logging.info(f"🎯 Matching {source_table} → {target_table}")
@@ -48,7 +49,7 @@ async def process_single_source_target_pair(source_csv_path: str, target_path: s
     synthetic_source_schema, expected_mapping = await generate_synthetic_ground_truth(target_schema, args.seed)
     
     # Load real ground truth
-    real_gt_mapping = load_real_ground_truth(target_table)
+    real_gt_mapping = load_real_ground_truth(target_table, expected_dir)
     
     # Run all matchers
     predicted_mapping, embed_predicted, cluster_predicted = await run_all_matchers(

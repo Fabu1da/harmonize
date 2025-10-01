@@ -9,12 +9,12 @@ import json
 import logging
 
 
-async def load_source_data(source_csv_path: str) -> Tuple[str, pd.DataFrame, Any]:
+async def load_source_data(source_csv_path: str, source_dir: str = "./assets/test/source") -> Tuple[str, pd.DataFrame, Any]:
     """Load source data and schema"""
     source_table = Path(source_csv_path).stem
-    source_path = f"./assets/source/{source_table}.csv"
+    source_path = f"{source_dir}/{source_table}.csv"
     source_data = pd.read_csv(source_path)
-    source_schema_path = f"./assets/source/{source_table}.json"
+    source_schema_path = f"{source_dir}/{source_table}.json"
 
     if os.path.exists(source_schema_path):
         with open(source_schema_path) as f:
@@ -34,28 +34,28 @@ def load_target_schema(target_path: str) -> Tuple[str, Any]:
 
 
 
-def load_real_ground_truth(target_table: str) -> Optional[Dict]:
+def load_real_ground_truth(target_table: str, expected_dir: str = "./assets/test/expected") -> Optional[Dict]:
     """Load real ground truth mapping if available"""
     # Try multiple strategies to find the ground truth file
     possible_paths = [
-        f"./assets/expected/{target_table}_mapping.json",  # Direct name match
-        f"./assets/expected/{target_table}.json",          # Without _mapping suffix
+        f"{expected_dir}/{target_table}_mapping.json",  # Direct name match
+        f"{expected_dir}/{target_table}.json",          # Without _mapping suffix
     ]
     
     # Also try extracting base name patterns (e.g., musicians_joinable from musicians_joinable_target)
     if "_target" in target_table:
         base_name = target_table.replace("_target", "")
         possible_paths.extend([
-            f"./assets/expected/{base_name}_mapping.json",
-            f"./assets/expected/{base_name}.json",
+            f"{expected_dir}/{base_name}_mapping.json",
+            f"{expected_dir}/{base_name}.json",
         ])
     
     # Try using first two parts of the target name
     target_prefix = "_".join(target_table.split("_")[:2])
     if target_prefix != target_table:  # Only add if different
         possible_paths.extend([
-            f"./assets/expected/{target_prefix}_mapping.json",
-            f"./assets/expected/{target_prefix}.json",
+            f"{expected_dir}/{target_prefix}_mapping.json",
+            f"{expected_dir}/{target_prefix}.json",
         ])
     
     for real_gt_path in possible_paths:
