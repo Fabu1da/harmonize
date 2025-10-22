@@ -328,7 +328,6 @@ def run_complete_dataset_type_analysis(all_results: List[Dict], all_triple_resul
     print("=" * 80)
     
     # Debug: Show first few dataset names to understand naming patterns
-    print("\n🔍 DEBUG: Sample dataset names:")
     for i, triple_result in enumerate(all_triple_results[:5]):
         if 'error' not in triple_result:
             source = triple_result.get('source_table', '')

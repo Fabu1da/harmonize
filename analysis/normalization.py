@@ -16,7 +16,7 @@ def load_data():
     # Build absolute paths to the JSON files
     coma_path = os.path.normpath(os.path.join(base_dir, '..', 'output', 'matches.json'))
     ham_path  = os.path.normpath(os.path.join(base_dir, '..', 'output', 'real_data_detailed_matches.json'))
-    gt_path  = os.path.normpath(os.path.join(base_dir, '..', 'expected'))
+    gt_path  = os.path.normpath(os.path.join(base_dir, '..', 'test', 'expected'))
 
     # Load COMA results (simple matches) and fix European decimal format
     with open(coma_path, 'r') as f:
@@ -39,7 +39,7 @@ def load_ground_truth():
     # Determine the directory where this script resides
     base_dir = os.path.dirname(os.path.abspath(__file__))
 
-    expected_folder = os.path.normpath(os.path.join(base_dir, '..', 'assets', 'expected'))
+    expected_folder = os.path.normpath(os.path.join(base_dir, '..', 'assets','test', 'expected'))
     ground_truth_data = {}
     
     # List all ground truth files
@@ -97,42 +97,25 @@ class Run:
     scores: dict  # Dict mapping Pair -> score
 
 def normalize_coma(coma_data, run_id="COMA"):
-    """Normalize COMA data format"""
+    """Normalize COMA data from all-pairs evaluation"""
     pairs = []
     scores = {}
     
     for item in coma_data:
-        # Extract information from the new COMA format
         source_table = item['source_table']
-        source_column = item['source_column']
         target_table = item['target_table']
-        target_column = item['target_column']
         
-        # print Debug
-        print(f"COMA Item - Source: {source_table}.{source_column}, Target: {target_table}.{target_column}, Similarity: {item['similarity']}")
-
-        # COMA already provides the correct table names with _source and _target suffixes
-        # that match the ground truth format, so use them directly
-        source_table_name = source_table
-        target_table_name = target_table
-        
-        # Create pair
+        # Add _source/_target suffixes to match ground truth format
         pair = Pair(
-            source_table=source_table_name,
-            source_column=source_column,
-            target_table=target_table_name,
-            target_column=target_column
+            source_table=f"{source_table}_source",
+            source_column=item['source_column'],
+            target_table=f"{target_table}_target",
+            target_column=item['target_column']
         )
         
-        # Convert similarity score (handle European decimal format)
-        similarity = item['similarity']
-        if isinstance(similarity, str) and ',' in similarity:
-            similarity = float(similarity.replace(',', '.'))
-        else:
-            similarity = float(similarity)
-        
         pairs.append(pair)
-        scores[pair] = similarity
+        scores[pair] = float(item['similarity'])
+    
     return Run(run_id=run_id, pairs=pairs, scores=scores)
 
 
@@ -158,11 +141,15 @@ def normalize_harmonize(harmonize_data):
         target_column = target_parts[-1]
         target_table = target_parts[-2]
         
+        # Add _source and _target suffixes to match ground truth format
+        source_table_name = f"{source_table}_source"
+        target_table_name = f"{target_table}_target"
+        
         # Create pair
         pair = Pair(
-            source_table=source_table,
+            source_table=source_table_name,
             source_column=source_column,
-            target_table=target_table,
+            target_table=target_table_name,
             target_column=target_column
         )
         

@@ -1,84 +1,56 @@
-from typing import Any, Dict, Optional, Tuple
-import clustering_matcher
-from embedding_utils import embedding_column_mapping
-from gpt_utils import gpt_column_mapping
+from typing import Any, Dict, Optional
 import os
 import json
 from datetime import datetime
 
+from config import APPROACHES
+
 
 async def run_all_matchers(source_schema: Any, target_schema: Any, seed: int, 
-                          real_gt_mapping: Optional[Dict], gpt_calibrator: Any, 
-                          source_name: str = None, target_name: str = None) -> Tuple[Dict, Dict, Dict]:
-    """Run all matching algorithms and return their predictions"""
-    # Run GPT matcher
-    raw_gpt_predictions = await gpt_column_mapping(source_schema, target_schema, seed=seed)
+                          real_gt_mapping: Optional[Dict],
+                          source_name: str = None, target_name: str = None) -> Dict[str, Dict]:
+    """Run all matching algorithms using approaches from config.py"""
     
-    # Display GPT reasoning
-    print(f"\n🔍 GPT MATCHER DEBUG WITH REASONING:")
-    for target_col, prediction_tuple in raw_gpt_predictions.items():
-        if len(prediction_tuple) == 3:
-            source_col, confidence, reasoning = prediction_tuple
-            print(f"   {target_col} -> {source_col} (conf: {confidence:.3f})")
-            print(f"      Reasoning: {reasoning}")
-        elif len(prediction_tuple) == 2:
-            source_col, confidence = prediction_tuple
-            print(f"   {target_col} -> {source_col} (conf: {confidence:.3f})")
-            print(f"      Reasoning: Not available")
-        else:
-            print(f"   {target_col} -> Invalid prediction format")
-    
-    # Also store raw predictions for detailed reasoning display later
-    print(f"\n📝 Detailed GPT Reasoning Analysis:")
+    print(f"\n🔄 Running {len(APPROACHES)} approaches from config.py")
     print("=" * 60)
-    for target_col, prediction_tuple in raw_gpt_predictions.items():
-        if len(prediction_tuple) == 3:
-            source_col, confidence, reasoning = prediction_tuple
-            print(f"\n🎯 Target: {target_col}")
-            print(f"   Match: {source_col}")
-            print(f"   Confidence: {confidence:.3f}")
-            print(f"   Reasoning: {reasoning}")
-            print("-" * 40)
     
-    # Collect training data if we have ground truth
-    if real_gt_mapping and gpt_calibrator:
-        gpt_calibrator.collect_training_data(raw_gpt_predictions, real_gt_mapping)
+    # Store all predictions by approach name
+    predictions_by_approach = {}
     
-    # Apply calibration if calibrator is fitted
-    if gpt_calibrator and gpt_calibrator.is_fitted:
-        predicted_mapping = gpt_calibrator.calibrate_predictions(raw_gpt_predictions)
-        print("🎯 Applied isotonic calibration to GPT-4 confidences")
-    else:
-        predicted_mapping = raw_gpt_predictions
-        print("⚠️ Using raw GPT-4 confidences (calibrator not fitted)")
-
-    # Run other matchers
-    embed_predicted = embedding_column_mapping(
-        source_columns=list(source_schema.properties.keys()),
-        target_columns=list(target_schema.properties.keys()),
-        threshold=0
-    )
+    for i, (approach, approach_name) in enumerate(APPROACHES):
+        print(f"\n🔍 Running {approach_name} ({i+1}/{len(APPROACHES)})")
+        try:
+            predictions = await approach.predict(
+                source_schema=source_schema,
+                target_schema=target_schema,
+                seed=seed,
+            )
+            predictions_by_approach[approach_name] = predictions
+            
+            # Show brief results
+            print(f"   ✅ {approach_name}: {len(predictions)} predictions")
+            
+            # Save reasoning for this approach if we have names
+            if source_name and target_name:
+                save_reasoning_to_json(
+                    predictions, 
+                    real_gt_mapping, 
+                    f"{source_name}_to_{target_name}_{approach_name.replace(' ', '_').replace('(', '').replace(')', '')}",
+                    source_schema,
+                    target_schema
+                )
+            
+        except Exception as e:
+            print(f"   ❌ {approach_name}: Error - {e}")
+            predictions_by_approach[approach_name] = {}
+            continue
     
-    cluster_predicted, cluster_info = clustering_matcher.clustering_matcher(source_schema, target_schema, return_cluster_info=True)
-    
-    # Note: cluster_info can be used here if needed for logging or stats collection
-    
-    # Save reasoning to JSON if we have source and target names
-    if source_name and target_name:
-        save_reasoning_to_json(
-            raw_gpt_predictions, 
-            real_gt_mapping, 
-            f"{source_name}_to_{target_name}",
-            source_schema,
-            target_schema
-        )
-    
-    return predicted_mapping, embed_predicted, cluster_predicted
+    return predictions_by_approach
 
 
 def save_reasoning_to_json(predicted_mapping_with_reasoning, expected_mapping=None, output_name=None, source_schema=None, target_schema=None):
     """
-    Save GPT reasoning data to a structured JSON file.
+    Save reasoning data to a structured JSON file.
     """
     # Create output directory if it doesn't exist
     os.makedirs("./output/reasoning", exist_ok=True)
@@ -143,5 +115,5 @@ def save_reasoning_to_json(predicted_mapping_with_reasoning, expected_mapping=No
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(reasoning_data, f, indent=2, ensure_ascii=False)
     
-    print(f"💾 GPT Reasoning saved to: {filename}")
+    print(f"💾 Reasoning saved to: {filename}")
     return filename

@@ -5,7 +5,7 @@ import os
 
 from json_schema import ObjectSchema
 
-async def add_description(source_schema: ObjectSchema) -> ObjectSchema:
+async def add_description(source_schema: ObjectSchema, model: str = "gpt-4o-mini") -> ObjectSchema:
     print("🔄 Mapping columns...")
 
     system_message = (
@@ -18,12 +18,12 @@ async def add_description(source_schema: ObjectSchema) -> ObjectSchema:
 
     try:
         response = openai.chat.completions.create(
-            model="gpt-4o-mini",
+            model=model,
             messages=[
                 {"role": "system", "content": system_message},
                 {"role": "user", "content": user_message}
             ],
-            temperature=0.0,
+            temperature=1.0 if model.startswith("gpt-5") else 0.0,
         )
 
         content = response.choices[0].message.content.strip()

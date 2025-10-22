@@ -44,7 +44,7 @@ class ColumnMapping(BaseModel):
 class ColumnMappings(BaseModel):
     mappings: list[ColumnMapping]
 
-async def gpt_column_mapping(source_schema: ObjectSchema, target_schema: ObjectSchema, seed: Optional[int] = None) -> dict[str, str]:
+async def gpt_column_mapping(source_schema: ObjectSchema, target_schema: ObjectSchema, model: str, seed: Optional[int] = None) -> dict[str, tuple[Optional[str], float, Optional[str]]]:
     """
     Enhanced GPT column mapping with detailed reasoning including closest match analysis.
     
@@ -83,17 +83,17 @@ async def gpt_column_mapping(source_schema: ObjectSchema, target_schema: ObjectS
 
     try:
         response = openai.beta.chat.completions.parse(
-            model="gpt-4o-mini",
+            model=model,
             messages=[
                 {"role": "system", "content": system_message},
                 {"role": "user", "content": user_message}
             ],
             response_format=ColumnMappings,
-            temperature=0.0,
+            temperature=0.0 if not model.startswith("gpt-5") else 1.0,  # GPT-5 requires explicit temperature, not None
             seed=seed,
         )
         mappings = response.choices[0].message.parsed
-        return {mapping.target_column: ((None if mapping.source_column == 'null' else mapping.source_column), mapping.confidence, mapping.reason) for mapping in mappings.mappings}
+        return {mapping.target_column: ((None if mapping.source_column == "null" else mapping.source_column), mapping.confidence, mapping.reason) for mapping in mappings.mappings}
     except Exception as e:
         print(f"Error during GPT request: {e}")
         return {target_column: None for target_column in target_schema.properties.keys()}

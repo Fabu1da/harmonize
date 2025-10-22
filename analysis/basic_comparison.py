@@ -213,6 +213,32 @@ def get_top1_prediction(run, source):
 
 
 
+def debug_data_formats(runs, gt_set):
+    """Debug function to examine data formats and find mismatches"""
+    print("\n=== DEBUGGING DATA FORMATS ===")
+    
+    print(f"\nGround Truth Sample (first 5 pairs):")
+    for i, pair in enumerate(list(gt_set)[:5]):
+        print(f"  GT {i+1}: {pair}")
+    
+    print(f"\nPrediction Sample for each run (first 3 pairs):")
+    for run in runs:
+        print(f"\n{run.run_id}:")
+        for i, pair in enumerate(run.pairs[:3]):
+            score = run.scores.get(pair, 'No score')
+            print(f"  {i+1}: {pair} (score: {score})")
+    
+    # Check for exact matches
+    print(f"\n=== CHECKING FOR EXACT MATCHES ===")
+    for run in runs:
+        run_pairs_set = set(run.pairs)
+        intersection = gt_set.intersection(run_pairs_set)
+        print(f"{run.run_id}: {len(intersection)} exact matches found")
+        if len(intersection) > 0:
+            print(f"  Sample matches:")
+            for i, pair in enumerate(list(intersection)[:3]):
+                print(f"    {i+1}: {pair}")
+
 def benchmark():
     """Create comprehensive visualizations for thesis"""
     print("\n=== CREATING VISUALIZATIONS ===")
@@ -230,9 +256,27 @@ def benchmark():
 
     runs = [coma_run] + harm_runs + [harm_max_run]
     
+    # Debug the data formats
+    debug_data_formats(runs, G)
+    
     print(f"\nTotal ground truth pairs: {len(G)}")
     for run in runs:
         print(f"{run.run_id}: {len(run.pairs)} pairs")
+    
+    # Check if we have any matches before proceeding
+    has_matches = False
+    for run in runs:
+        run_pairs_set = set(run.pairs)
+        if len(G.intersection(run_pairs_set)) > 0:
+            has_matches = True
+            break
+    
+    if not has_matches:
+        print("\n❌ NO MATCHES FOUND! Stopping evaluation.")
+        print("Check the data format alignment between predictions and ground truth.")
+        return
+    else:
+        print("\n✅ Matches found, proceeding with evaluation...")
     
     # ---------- 2A) Candidate coverage ----------
     print("\n=== STEP 2A: CANDIDATE COVERAGE ===")

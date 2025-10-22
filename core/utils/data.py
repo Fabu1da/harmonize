@@ -2,7 +2,7 @@ from typing import Dict, List, Tuple, Optional, Any
 import os
 from pathlib import Path
 import pandas as pd
-from gpt_calibration import GPTConfidenceCalibrator
+from confidence_calibration import ConfidenceCalibrator
 from json_schema import ObjectSchema
 from schema_inference import infer_schema
 import json
@@ -12,7 +12,13 @@ import logging
 async def load_source_data(source_csv_path: str, source_dir: str = "./assets/test/source") -> Tuple[str, pd.DataFrame, Any]:
     """Load source data and schema"""
     source_table = Path(source_csv_path).stem
-    source_path = f"{source_dir}/{source_table}.csv"
+    
+    # Use the provided path directly if it's a full path, otherwise construct it
+    if os.path.exists(source_csv_path):
+        source_path = source_csv_path
+    else:
+        source_path = f"{source_dir}/{source_table}.csv"
+    
     source_data = pd.read_csv(source_path)
     source_schema_path = f"{source_dir}/{source_table}.json"
 
@@ -103,14 +109,14 @@ def load_real_ground_truth(target_table: str, expected_dir: str = "./assets/test
     
     
     
-async def load_gpt_calibrator():
-    """Load or initialize the GPT calibrator"""
-    calibrator_path = "./models/gpt_isotonic_calibrator.pkl"
+async def load_confidence_calibrator(name: str):
+    """Load or initialize the confidence calibrator"""
+    calibrator_path = f"./models/confidence_calibrators/{name}.pkl"
     if os.path.exists(calibrator_path):
-        global gpt_calibrator
-        gpt_calibrator = GPTConfidenceCalibrator.load(calibrator_path)
-        logging.info("✅ Loaded pre-trained GPT isotonic calibrator")
-        return gpt_calibrator
+        global confidence_calibrator
+        confidence_calibrator = ConfidenceCalibrator.load(calibrator_path)
+        logging.info(f"✅ Loaded pre-trained {name} confidence calibrator")
+        return confidence_calibrator
     else:
-        logging.warning("⚠️ No pre-trained GPT calibrator found, starting from scratch")
+        logging.warning(f"⚠️ No pre-trained {name} confidence calibrator found, starting from scratch")
         return None

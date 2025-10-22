@@ -1,0 +1,4112 @@
+{
+  "checkpoint_name": "final_results",
+  "timestamp": "2025-10-02T20:08:02.631792",
+  "session_id": "session_1759428406",
+  "data": {
+    "completed_pairs": [],
+    "skipped_pairs": [],
+    "all_pairwise_results": [
+      {
+        "source_table": "walmart_amazon",
+        "target_table": "miller2_both_0_1_ac5_av_view_unionable",
+        "comparisons": {
+          "GPT_vs_Embedding": "PairwiseMetrics(precision=0.0, recall=0.0, f1_score=0.0, true_positives=0, false_positives=0, false_negatives=0, agreement_rate=0.0)",
+          "GPT_vs_Clustering": "PairwiseMetrics(precision=0.0, recall=0.0, f1_score=0.0, true_positives=0, false_positives=0, false_negatives=0, agreement_rate=0.0)",
+          "Embedding_vs_Clustering": "PairwiseMetrics(precision=0.0, recall=0.0, f1_score=0.0, true_positives=0, false_positives=1, false_negatives=0, agreement_rate=0.0)"
+        },
+        "has_ground_truth": true
+      },
+      {
+        "source_table": "walmart_amazon",
+        "target_table": "miller2_both_0_1_ac5_av_view_unionable",
+        "comparisons": {
+          "GPT_vs_Embedding": "PairwiseMetrics(precision=0.0, recall=0.0, f1_score=0.0, true_positives=0, false_positives=0, false_negatives=0, agreement_rate=0.0)",
+          "GPT_vs_Clustering": "PairwiseMetrics(precision=0.0, recall=0.0, f1_score=0.0, true_positives=0, false_positives=0, false_negatives=0, agreement_rate=0.0)",
+          "Embedding_vs_Clustering": "PairwiseMetrics(precision=0.0, recall=0.0, f1_score=0.0, true_positives=0, false_positives=1, false_negatives=0, agreement_rate=0.0)"
+        },
+        "has_ground_truth": true
+      },
+      {
+        "source_table": "walmart_amazon",
+        "target_table": "miller2_both_0_1_ac5_av_view_unionable",
+        "comparisons": {
+          "GPT_vs_Embedding": "PairwiseMetrics(precision=0.0, recall=0.0, f1_score=0.0, true_positives=0, false_positives=0, false_negatives=0, agreement_rate=0.0)",
+          "GPT_vs_Clustering": "PairwiseMetrics(precision=0.0, recall=0.0, f1_score=0.0, true_positives=0, false_positives=0, false_negatives=0, agreement_rate=0.0)",
+          "Embedding_vs_Clustering": "PairwiseMetrics(precision=0.0, recall=0.0, f1_score=0.0, true_positives=0, false_positives=1, false_negatives=0, agreement_rate=0.0)"
+        },
+        "has_ground_truth": true
+      },
+      {
+        "source_table": "walmart_amazon",
+        "target_table": "miller2_both_0_1_ac5_av_view_unionable",
+        "comparisons": {
+          "GPT_vs_Embedding": "PairwiseMetrics(precision=0.0, recall=0.0, f1_score=0.0, true_positives=0, false_positives=0, false_negatives=0, agreement_rate=0.0)",
+          "GPT_vs_Clustering": "PairwiseMetrics(precision=0.0, recall=0.0, f1_score=0.0, true_positives=0, false_positives=0, false_negatives=0, agreement_rate=0.0)",
+          "Embedding_vs_Clustering": "PairwiseMetrics(precision=0.0, recall=0.0, f1_score=0.0, true_positives=0, false_positives=1, false_negatives=0, agreement_rate=0.0)"
+        },
+        "has_ground_truth": true
+      }
+    ],
+    "all_triple_results": [
+      {
+        "patterns": {
+          "all_correct": [],
+          "two_correct": [],
+          "one_correct": [],
+          "none_correct": [
+            "miller2_fsclr"
+          ],
+          "all_agree_correct": [],
+          "all_agree_wrong": [],
+          "majority_correct": [],
+          "majority_wrong": [
+            "miller2_fsclr"
+          ]
+        },
+        "detailed_results": [
+          {
+            "target_column": "miller2_fsclr",
+            "ground_truth": "Fiscal year",
+            "gpt_prediction": null,
+            "gpt_confidence": 0.0,
+            "gpt_reasoning": "Closest match: title because it represents a descriptive text related to a product, but insufficient because 'title' does not convey any specific information about a fiscal score or financial metric, which 'miller2_fsclr' implies. A valid match would need a field that specifically relates to financial scores or fiscal data.",
+            "gpt_correct": false,
+            "embedding_prediction": "id",
+            "embedding_confidence": 0.2864,
+            "embedding_correct": false,
+            "clustering_prediction": "id",
+            "clustering_confidence": 0.2864,
+            "clustering_correct": false,
+            "correct_count": 0,
+            "all_agree": false,
+            "majority_prediction": "id",
+            "majority_correct": false
+          }
+        ],
+        "summary_stats": {
+          "total_columns": 1,
+          "all_correct_rate": 0.0,
+          "two_correct_rate": 0.0,
+          "one_correct_rate": 0.0,
+          "none_correct_rate": 1.0,
+          "agreement_rate": 0.0,
+          "agreement_accuracy": 0,
+          "majority_accuracy": 0.0,
+          "gpt_precision": 0.0,
+          "gpt_recall": 0.0,
+          "gpt_f1_score": 0.0,
+          "embedding_precision": 0.0,
+          "embedding_recall": 0.0,
+          "embedding_f1_score": 0.0,
+          "clustering_precision": 0.0,
+          "clustering_recall": 0.0,
+          "clustering_f1_score": 0.0,
+          "majority_precision": 0.0,
+          "majority_recall": 0.0,
+          "majority_f1_score": 0.0,
+          "combined_precision": 0.0,
+          "combined_recall": 0.0,
+          "combined_f1_score": 0.0
+        },
+        "source_table": "walmart_amazon",
+        "target_table": "miller2_both_0_1_ac5_av_view_unionable"
+      },
+      {
+        "patterns": {
+          "all_correct": [],
+          "two_correct": [],
+          "one_correct": [],
+          "none_correct": [
+            "miller2_fsclr"
+          ],
+          "all_agree_correct": [],
+          "all_agree_wrong": [],
+          "majority_correct": [],
+          "majority_wrong": [
+            "miller2_fsclr"
+          ]
+        },
+        "detailed_results": [
+          {
+            "target_column": "miller2_fsclr",
+            "ground_truth": "Fiscal year",
+            "gpt_prediction": null,
+            "gpt_confidence": 0.0,
+            "gpt_reasoning": "Closest match: title because it represents a descriptive text field, but insufficient because title refers to product names while fsclr seems to imply a specific field related to a different context (possibly a financial or scoring metric). A valid match would need a field that directly relates to a financial score or metric.",
+            "gpt_correct": false,
+            "embedding_prediction": "id",
+            "embedding_confidence": 0.2864,
+            "embedding_correct": false,
+            "clustering_prediction": "id",
+            "clustering_confidence": 0.2864,
+            "clustering_correct": false,
+            "correct_count": 0,
+            "all_agree": false,
+            "majority_prediction": "id",
+            "majority_correct": false
+          }
+        ],
+        "summary_stats": {
+          "total_columns": 1,
+          "all_correct_rate": 0.0,
+          "two_correct_rate": 0.0,
+          "one_correct_rate": 0.0,
+          "none_correct_rate": 1.0,
+          "agreement_rate": 0.0,
+          "agreement_accuracy": 0,
+          "majority_accuracy": 0.0,
+          "gpt_precision": 0.0,
+          "gpt_recall": 0.0,
+          "gpt_f1_score": 0.0,
+          "embedding_precision": 0.0,
+          "embedding_recall": 0.0,
+          "embedding_f1_score": 0.0,
+          "clustering_precision": 0.0,
+          "clustering_recall": 0.0,
+          "clustering_f1_score": 0.0,
+          "majority_precision": 0.0,
+          "majority_recall": 0.0,
+          "majority_f1_score": 0.0,
+          "combined_precision": 0.0,
+          "combined_recall": 0.0,
+          "combined_f1_score": 0.0
+        },
+        "source_table": "walmart_amazon",
+        "target_table": "miller2_both_0_1_ac5_av_view_unionable"
+      },
+      {
+        "patterns": {
+          "all_correct": [],
+          "two_correct": [],
+          "one_correct": [],
+          "none_correct": [
+            "miller2_fsclr"
+          ],
+          "all_agree_correct": [],
+          "all_agree_wrong": [],
+          "majority_correct": [],
+          "majority_wrong": [
+            "miller2_fsclr"
+          ]
+        },
+        "detailed_results": [
+          {
+            "target_column": "miller2_fsclr",
+            "ground_truth": "Fiscal year",
+            "gpt_prediction": null,
+            "gpt_confidence": 0.0,
+            "gpt_reasoning": "Closest match: title because it represents a descriptive attribute of a product, but insufficient because title is a string describing a product's name, while miller2_fsclr does not have a clear semantic meaning or context in the source schema.",
+            "gpt_correct": false,
+            "embedding_prediction": "id",
+            "embedding_confidence": 0.2864,
+            "embedding_correct": false,
+            "clustering_prediction": "id",
+            "clustering_confidence": 0.2864,
+            "clustering_correct": false,
+            "correct_count": 0,
+            "all_agree": false,
+            "majority_prediction": "id",
+            "majority_correct": false
+          }
+        ],
+        "summary_stats": {
+          "total_columns": 1,
+          "all_correct_rate": 0.0,
+          "two_correct_rate": 0.0,
+          "one_correct_rate": 0.0,
+          "none_correct_rate": 1.0,
+          "agreement_rate": 0.0,
+          "agreement_accuracy": 0,
+          "majority_accuracy": 0.0,
+          "gpt_precision": 0.0,
+          "gpt_recall": 0.0,
+          "gpt_f1_score": 0.0,
+          "embedding_precision": 0.0,
+          "embedding_recall": 0.0,
+          "embedding_f1_score": 0.0,
+          "clustering_precision": 0.0,
+          "clustering_recall": 0.0,
+          "clustering_f1_score": 0.0,
+          "majority_precision": 0.0,
+          "majority_recall": 0.0,
+          "majority_f1_score": 0.0,
+          "combined_precision": 0.0,
+          "combined_recall": 0.0,
+          "combined_f1_score": 0.0
+        },
+        "source_table": "walmart_amazon",
+        "target_table": "miller2_both_0_1_ac5_av_view_unionable"
+      },
+      {
+        "patterns": {
+          "all_correct": [],
+          "two_correct": [],
+          "one_correct": [],
+          "none_correct": [
+            "miller2_fsclr"
+          ],
+          "all_agree_correct": [],
+          "all_agree_wrong": [],
+          "majority_correct": [],
+          "majority_wrong": [
+            "miller2_fsclr"
+          ]
+        },
+        "detailed_results": [
+          {
+            "target_column": "miller2_fsclr",
+            "ground_truth": "Fiscal year",
+            "gpt_prediction": null,
+            "gpt_confidence": 0.0,
+            "gpt_reasoning": "Closest match: title because it represents a descriptive text field, but insufficient because title contains product descriptions rather than a specific field related to 'fsclr', which appears to be a unique identifier or code. A valid match would need a field that directly corresponds to a unique identifier or classification.",
+            "gpt_correct": false,
+            "embedding_prediction": "id",
+            "embedding_confidence": 0.2864,
+            "embedding_correct": false,
+            "clustering_prediction": "id",
+            "clustering_confidence": 0.2864,
+            "clustering_correct": false,
+            "correct_count": 0,
+            "all_agree": false,
+            "majority_prediction": "id",
+            "majority_correct": false
+          }
+        ],
+        "summary_stats": {
+          "total_columns": 1,
+          "all_correct_rate": 0.0,
+          "two_correct_rate": 0.0,
+          "one_correct_rate": 0.0,
+          "none_correct_rate": 1.0,
+          "agreement_rate": 0.0,
+          "agreement_accuracy": 0,
+          "majority_accuracy": 0.0,
+          "gpt_precision": 0.0,
+          "gpt_recall": 0.0,
+          "gpt_f1_score": 0.0,
+          "embedding_precision": 0.0,
+          "embedding_recall": 0.0,
+          "embedding_f1_score": 0.0,
+          "clustering_precision": 0.0,
+          "clustering_recall": 0.0,
+          "clustering_f1_score": 0.0,
+          "majority_precision": 0.0,
+          "majority_recall": 0.0,
+          "majority_f1_score": 0.0,
+          "combined_precision": 0.0,
+          "combined_recall": 0.0,
+          "combined_f1_score": 0.0
+        },
+        "source_table": "walmart_amazon",
+        "target_table": "miller2_both_0_1_ac5_av_view_unionable"
+      }
+    ],
+    "detailed_matches": [
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_fsclr",
+        "similarity": 0.2864,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "Fiscal year"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_fsclr",
+        "similarity": 0.2864,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "Fiscal year"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_fsclr",
+        "similarity": 0.2864,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "Fiscal year"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_fsclr",
+        "similarity": 0.2578,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "Fiscal year"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_trddvlpmnt(mrkr)",
+        "similarity": 0.2961,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_trddvlpmnt(mrkr)",
+        "similarity": 0.2961,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_trddvlpmnt(mrkr)",
+        "similarity": 0.2961,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_trddvlpmnt(mrkr)",
+        "similarity": 0.2665,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_bdvrst(mrkr)",
+        "similarity": 0.2788,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_bdvrst(mrkr)",
+        "similarity": 0.2788,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_bdvrst(mrkr)",
+        "similarity": 0.2788,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_bdvrst(mrkr)",
+        "similarity": 0.2509,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rbnsss(mrkr)",
+        "similarity": 0.2699,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rbnsss(mrkr)",
+        "similarity": 0.2699,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rbnsss(mrkr)",
+        "similarity": 0.2699,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rbnsss(mrkr)",
+        "similarity": 0.2429,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_chldrnsss(mrkr)",
+        "similarity": 0.2795,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_chldrnsss(mrkr)",
+        "similarity": 0.2795,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_chldrnsss(mrkr)",
+        "similarity": 0.2795,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_chldrnsss(mrkr)",
+        "similarity": 0.2516,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_thsss(mrkr)",
+        "similarity": 0.2808,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_thsss(mrkr)",
+        "similarity": 0.2808,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_thsss(mrkr)",
+        "similarity": 0.2808,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_thsss(mrkr)",
+        "similarity": 0.2527,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ndgnssss(mrkr)",
+        "similarity": 0.2578,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ndgnssss(mrkr)",
+        "similarity": 0.2578,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ndgnssss(mrkr)",
+        "similarity": 0.2578,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ndgnssss(mrkr)",
+        "similarity": 0.232,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_dsbltsss(mrkr)",
+        "similarity": 0.2878,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_dsbltsss(mrkr)",
+        "similarity": 0.2878,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_dsbltsss(mrkr)",
+        "similarity": 0.2878,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_dsbltsss(mrkr)",
+        "similarity": 0.259,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ctstlfrdvlpmnt(mrkr)",
+        "similarity": 0.2831,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ctstlfrdvlpmnt(mrkr)",
+        "similarity": 0.2831,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ctstlfrdvlpmnt(mrkr)",
+        "similarity": 0.2831,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ctstlfrdvlpmnt(mrkr)",
+        "similarity": 0.2548,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_knwldgfrdvlpmnt(mrkr)",
+        "similarity": 0.285,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_knwldgfrdvlpmnt(mrkr)",
+        "similarity": 0.285,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_knwldgfrdvlpmnt(mrkr)",
+        "similarity": 0.285,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_knwldgfrdvlpmnt(mrkr)",
+        "similarity": 0.2565,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_gndrqlt(mrkr)",
+        "similarity": 0.2757,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_gndrqlt(mrkr)",
+        "similarity": 0.2757,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_gndrqlt(mrkr)",
+        "similarity": 0.2757,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_gndrqlt(mrkr)",
+        "similarity": 0.2481,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnd",
+        "similarity": 0.3152,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnd",
+        "similarity": 0.3152,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnd",
+        "similarity": 0.3152,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnd",
+        "similarity": 0.2837,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnnm",
+        "similarity": 0.2945,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnnm",
+        "similarity": 0.2945,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnnm",
+        "similarity": 0.2945,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnnm",
+        "similarity": 0.2651,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstntp",
+        "similarity": 0.2805,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstntp",
+        "similarity": 0.2805,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstntp",
+        "similarity": 0.2805,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstntp",
+        "similarity": 0.2525,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnclss",
+        "similarity": 0.296,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnclss",
+        "similarity": 0.296,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnclss",
+        "similarity": 0.296,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnclss",
+        "similarity": 0.2664,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnsb-clss",
+        "similarity": 0.2994,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnsb-clss",
+        "similarity": 0.2994,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnsb-clss",
+        "similarity": 0.2994,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnsb-clss",
+        "similarity": 0.2695,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntd",
+        "similarity": 0.3225,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntd",
+        "similarity": 0.3225,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntd",
+        "similarity": 0.3225,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntd",
+        "similarity": 0.2903,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntnm",
+        "similarity": 0.3005,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntnm",
+        "similarity": 0.3005,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntnm",
+        "similarity": 0.3005,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntnm",
+        "similarity": 0.2704,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_prjctbrwsrcntrd",
+        "similarity": 0.3198,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_prjctbrwsrcntrd",
+        "similarity": 0.3198,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_prjctbrwsrcntrd",
+        "similarity": 0.3198,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_prjctbrwsrcntrd",
+        "similarity": 0.2878,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnd",
+        "similarity": 0.2928,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnd",
+        "similarity": 0.2928,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnd",
+        "similarity": 0.2928,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnd",
+        "similarity": 0.2635,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnnm",
+        "similarity": 0.2581,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnnm",
+        "similarity": 0.2581,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnnm",
+        "similarity": 0.2581,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnnm",
+        "similarity": 0.2323,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnprcnt",
+        "similarity": 0.284,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnprcnt",
+        "similarity": 0.284,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnprcnt",
+        "similarity": 0.284,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnprcnt",
+        "similarity": 0.2556,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrd",
+        "similarity": 0.3286,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrd",
+        "similarity": 0.3286,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrd",
+        "similarity": 0.3286,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrd",
+        "similarity": 0.2957,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrnm",
+        "similarity": 0.2741,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrnm",
+        "similarity": 0.2741,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrnm",
+        "similarity": 0.2741,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrnm",
+        "similarity": 0.2467,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrprcnt",
+        "similarity": 0.3034,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrprcnt",
+        "similarity": 0.3034,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrprcnt",
+        "similarity": 0.3034,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrprcnt",
+        "similarity": 0.2731,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_mntspnt",
+        "similarity": 0.2729,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_mntspnt",
+        "similarity": 0.2729,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_mntspnt",
+        "similarity": 0.2729,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_mntspnt",
+        "similarity": 0.2456,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_fsclr",
+        "similarity": 0.2864,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "Fiscal year"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_fsclr",
+        "similarity": 0.2864,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "Fiscal year"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_fsclr",
+        "similarity": 0.2864,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "Fiscal year"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_fsclr",
+        "similarity": 0.2578,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "Fiscal year"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_trddvlpmnt(mrkr)",
+        "similarity": 0.2961,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_trddvlpmnt(mrkr)",
+        "similarity": 0.2961,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_trddvlpmnt(mrkr)",
+        "similarity": 0.2961,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_trddvlpmnt(mrkr)",
+        "similarity": 0.2665,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_bdvrst(mrkr)",
+        "similarity": 0.2788,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_bdvrst(mrkr)",
+        "similarity": 0.2788,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_bdvrst(mrkr)",
+        "similarity": 0.2788,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_bdvrst(mrkr)",
+        "similarity": 0.2509,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rbnsss(mrkr)",
+        "similarity": 0.2699,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rbnsss(mrkr)",
+        "similarity": 0.2699,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rbnsss(mrkr)",
+        "similarity": 0.2699,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rbnsss(mrkr)",
+        "similarity": 0.2429,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_chldrnsss(mrkr)",
+        "similarity": 0.2795,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_chldrnsss(mrkr)",
+        "similarity": 0.2795,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_chldrnsss(mrkr)",
+        "similarity": 0.2795,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_chldrnsss(mrkr)",
+        "similarity": 0.2516,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_thsss(mrkr)",
+        "similarity": 0.2808,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_thsss(mrkr)",
+        "similarity": 0.2808,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_thsss(mrkr)",
+        "similarity": 0.2808,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_thsss(mrkr)",
+        "similarity": 0.2527,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ndgnssss(mrkr)",
+        "similarity": 0.2578,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ndgnssss(mrkr)",
+        "similarity": 0.2578,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ndgnssss(mrkr)",
+        "similarity": 0.2578,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ndgnssss(mrkr)",
+        "similarity": 0.232,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_dsbltsss(mrkr)",
+        "similarity": 0.2878,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_dsbltsss(mrkr)",
+        "similarity": 0.2878,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_dsbltsss(mrkr)",
+        "similarity": 0.2878,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_dsbltsss(mrkr)",
+        "similarity": 0.259,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ctstlfrdvlpmnt(mrkr)",
+        "similarity": 0.2831,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ctstlfrdvlpmnt(mrkr)",
+        "similarity": 0.2831,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ctstlfrdvlpmnt(mrkr)",
+        "similarity": 0.2831,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ctstlfrdvlpmnt(mrkr)",
+        "similarity": 0.2548,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_knwldgfrdvlpmnt(mrkr)",
+        "similarity": 0.285,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_knwldgfrdvlpmnt(mrkr)",
+        "similarity": 0.285,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_knwldgfrdvlpmnt(mrkr)",
+        "similarity": 0.285,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_knwldgfrdvlpmnt(mrkr)",
+        "similarity": 0.2565,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_gndrqlt(mrkr)",
+        "similarity": 0.2757,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_gndrqlt(mrkr)",
+        "similarity": 0.2757,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_gndrqlt(mrkr)",
+        "similarity": 0.2757,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_gndrqlt(mrkr)",
+        "similarity": 0.2481,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnd",
+        "similarity": 0.3152,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnd",
+        "similarity": 0.3152,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnd",
+        "similarity": 0.3152,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnd",
+        "similarity": 0.2837,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnnm",
+        "similarity": 0.2945,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnnm",
+        "similarity": 0.2945,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnnm",
+        "similarity": 0.2945,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnnm",
+        "similarity": 0.2651,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstntp",
+        "similarity": 0.2805,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstntp",
+        "similarity": 0.2805,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstntp",
+        "similarity": 0.2805,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstntp",
+        "similarity": 0.2525,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnclss",
+        "similarity": 0.296,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnclss",
+        "similarity": 0.296,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnclss",
+        "similarity": 0.296,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnclss",
+        "similarity": 0.2664,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnsb-clss",
+        "similarity": 0.2994,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnsb-clss",
+        "similarity": 0.2994,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnsb-clss",
+        "similarity": 0.2994,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnsb-clss",
+        "similarity": 0.2695,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntd",
+        "similarity": 0.3225,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntd",
+        "similarity": 0.3225,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntd",
+        "similarity": 0.3225,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntd",
+        "similarity": 0.2903,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntnm",
+        "similarity": 0.3005,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntnm",
+        "similarity": 0.3005,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntnm",
+        "similarity": 0.3005,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntnm",
+        "similarity": 0.2704,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_prjctbrwsrcntrd",
+        "similarity": 0.3198,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_prjctbrwsrcntrd",
+        "similarity": 0.3198,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_prjctbrwsrcntrd",
+        "similarity": 0.3198,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_prjctbrwsrcntrd",
+        "similarity": 0.2878,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnd",
+        "similarity": 0.2928,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnd",
+        "similarity": 0.2928,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnd",
+        "similarity": 0.2928,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnd",
+        "similarity": 0.2635,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnnm",
+        "similarity": 0.2581,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnnm",
+        "similarity": 0.2581,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnnm",
+        "similarity": 0.2581,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnnm",
+        "similarity": 0.2323,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnprcnt",
+        "similarity": 0.284,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnprcnt",
+        "similarity": 0.284,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnprcnt",
+        "similarity": 0.284,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnprcnt",
+        "similarity": 0.2556,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrd",
+        "similarity": 0.3286,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrd",
+        "similarity": 0.3286,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrd",
+        "similarity": 0.3286,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrd",
+        "similarity": 0.2957,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrnm",
+        "similarity": 0.2741,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrnm",
+        "similarity": 0.2741,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrnm",
+        "similarity": 0.2741,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrnm",
+        "similarity": 0.2467,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrprcnt",
+        "similarity": 0.3034,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrprcnt",
+        "similarity": 0.3034,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrprcnt",
+        "similarity": 0.3034,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrprcnt",
+        "similarity": 0.2731,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_mntspnt",
+        "similarity": 0.2729,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_mntspnt",
+        "similarity": 0.2729,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_mntspnt",
+        "similarity": 0.2729,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_mntspnt",
+        "similarity": 0.2456,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_fsclr",
+        "similarity": 0.2864,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "Fiscal year"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_fsclr",
+        "similarity": 0.2864,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "Fiscal year"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_fsclr",
+        "similarity": 0.2864,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "Fiscal year"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_fsclr",
+        "similarity": 0.2578,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "Fiscal year"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_trddvlpmnt(mrkr)",
+        "similarity": 0.2961,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_trddvlpmnt(mrkr)",
+        "similarity": 0.2961,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_trddvlpmnt(mrkr)",
+        "similarity": 0.2961,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_trddvlpmnt(mrkr)",
+        "similarity": 0.2665,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_bdvrst(mrkr)",
+        "similarity": 0.2788,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_bdvrst(mrkr)",
+        "similarity": 0.2788,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_bdvrst(mrkr)",
+        "similarity": 0.2788,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_bdvrst(mrkr)",
+        "similarity": 0.2509,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rbnsss(mrkr)",
+        "similarity": 0.2699,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rbnsss(mrkr)",
+        "similarity": 0.2699,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rbnsss(mrkr)",
+        "similarity": 0.2699,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rbnsss(mrkr)",
+        "similarity": 0.2429,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_chldrnsss(mrkr)",
+        "similarity": 0.2795,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_chldrnsss(mrkr)",
+        "similarity": 0.2795,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_chldrnsss(mrkr)",
+        "similarity": 0.2795,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_chldrnsss(mrkr)",
+        "similarity": 0.2516,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_thsss(mrkr)",
+        "similarity": 0.2808,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_thsss(mrkr)",
+        "similarity": 0.2808,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_thsss(mrkr)",
+        "similarity": 0.2808,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_thsss(mrkr)",
+        "similarity": 0.2527,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ndgnssss(mrkr)",
+        "similarity": 0.2578,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ndgnssss(mrkr)",
+        "similarity": 0.2578,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ndgnssss(mrkr)",
+        "similarity": 0.2578,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ndgnssss(mrkr)",
+        "similarity": 0.232,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_dsbltsss(mrkr)",
+        "similarity": 0.2878,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_dsbltsss(mrkr)",
+        "similarity": 0.2878,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_dsbltsss(mrkr)",
+        "similarity": 0.2878,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_dsbltsss(mrkr)",
+        "similarity": 0.259,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ctstlfrdvlpmnt(mrkr)",
+        "similarity": 0.2831,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ctstlfrdvlpmnt(mrkr)",
+        "similarity": 0.2831,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ctstlfrdvlpmnt(mrkr)",
+        "similarity": 0.2831,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ctstlfrdvlpmnt(mrkr)",
+        "similarity": 0.2548,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_knwldgfrdvlpmnt(mrkr)",
+        "similarity": 0.285,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_knwldgfrdvlpmnt(mrkr)",
+        "similarity": 0.285,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_knwldgfrdvlpmnt(mrkr)",
+        "similarity": 0.285,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_knwldgfrdvlpmnt(mrkr)",
+        "similarity": 0.2565,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_gndrqlt(mrkr)",
+        "similarity": 0.2757,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_gndrqlt(mrkr)",
+        "similarity": 0.2757,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_gndrqlt(mrkr)",
+        "similarity": 0.2757,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_gndrqlt(mrkr)",
+        "similarity": 0.2481,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnd",
+        "similarity": 0.3152,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnd",
+        "similarity": 0.3152,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnd",
+        "similarity": 0.3152,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnd",
+        "similarity": 0.2837,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnnm",
+        "similarity": 0.2945,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnnm",
+        "similarity": 0.2945,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnnm",
+        "similarity": 0.2945,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnnm",
+        "similarity": 0.2651,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstntp",
+        "similarity": 0.2805,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstntp",
+        "similarity": 0.2805,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstntp",
+        "similarity": 0.2805,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstntp",
+        "similarity": 0.2525,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnclss",
+        "similarity": 0.296,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnclss",
+        "similarity": 0.296,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnclss",
+        "similarity": 0.296,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnclss",
+        "similarity": 0.2664,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnsb-clss",
+        "similarity": 0.2994,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnsb-clss",
+        "similarity": 0.2994,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnsb-clss",
+        "similarity": 0.2994,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnsb-clss",
+        "similarity": 0.2695,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntd",
+        "similarity": 0.3225,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntd",
+        "similarity": 0.3225,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntd",
+        "similarity": 0.3225,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntd",
+        "similarity": 0.2903,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntnm",
+        "similarity": 0.3005,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntnm",
+        "similarity": 0.3005,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntnm",
+        "similarity": 0.3005,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntnm",
+        "similarity": 0.2704,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_prjctbrwsrcntrd",
+        "similarity": 0.3198,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_prjctbrwsrcntrd",
+        "similarity": 0.3198,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_prjctbrwsrcntrd",
+        "similarity": 0.3198,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_prjctbrwsrcntrd",
+        "similarity": 0.2878,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnd",
+        "similarity": 0.2928,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnd",
+        "similarity": 0.2928,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnd",
+        "similarity": 0.2928,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnd",
+        "similarity": 0.2635,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnnm",
+        "similarity": 0.2581,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnnm",
+        "similarity": 0.2581,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnnm",
+        "similarity": 0.2581,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnnm",
+        "similarity": 0.2323,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnprcnt",
+        "similarity": 0.284,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnprcnt",
+        "similarity": 0.284,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnprcnt",
+        "similarity": 0.284,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnprcnt",
+        "similarity": 0.2556,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrd",
+        "similarity": 0.3286,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrd",
+        "similarity": 0.3286,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrd",
+        "similarity": 0.3286,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrd",
+        "similarity": 0.2957,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrnm",
+        "similarity": 0.2741,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrnm",
+        "similarity": 0.2741,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrnm",
+        "similarity": 0.2741,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrnm",
+        "similarity": 0.2467,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrprcnt",
+        "similarity": 0.3034,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrprcnt",
+        "similarity": 0.3034,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrprcnt",
+        "similarity": 0.3034,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrprcnt",
+        "similarity": 0.2731,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_mntspnt",
+        "similarity": 0.2729,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_mntspnt",
+        "similarity": 0.2729,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_mntspnt",
+        "similarity": 0.2729,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_mntspnt",
+        "similarity": 0.2456,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_fsclr",
+        "similarity": 0.2864,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "Fiscal year"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_fsclr",
+        "similarity": 0.2864,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "Fiscal year"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_fsclr",
+        "similarity": 0.2864,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "Fiscal year"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_fsclr",
+        "similarity": 0.2578,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "Fiscal year"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_trddvlpmnt(mrkr)",
+        "similarity": 0.2961,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_trddvlpmnt(mrkr)",
+        "similarity": 0.2961,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_trddvlpmnt(mrkr)",
+        "similarity": 0.2961,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_trddvlpmnt(mrkr)",
+        "similarity": 0.2665,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_bdvrst(mrkr)",
+        "similarity": 0.2788,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_bdvrst(mrkr)",
+        "similarity": 0.2788,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_bdvrst(mrkr)",
+        "similarity": 0.2788,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_bdvrst(mrkr)",
+        "similarity": 0.2509,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rbnsss(mrkr)",
+        "similarity": 0.2699,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rbnsss(mrkr)",
+        "similarity": 0.2699,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rbnsss(mrkr)",
+        "similarity": 0.2699,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rbnsss(mrkr)",
+        "similarity": 0.2429,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_chldrnsss(mrkr)",
+        "similarity": 0.2795,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_chldrnsss(mrkr)",
+        "similarity": 0.2795,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_chldrnsss(mrkr)",
+        "similarity": 0.2795,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_chldrnsss(mrkr)",
+        "similarity": 0.2516,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_thsss(mrkr)",
+        "similarity": 0.2808,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_thsss(mrkr)",
+        "similarity": 0.2808,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_thsss(mrkr)",
+        "similarity": 0.2808,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_thsss(mrkr)",
+        "similarity": 0.2527,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ndgnssss(mrkr)",
+        "similarity": 0.2578,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ndgnssss(mrkr)",
+        "similarity": 0.2578,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ndgnssss(mrkr)",
+        "similarity": 0.2578,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ndgnssss(mrkr)",
+        "similarity": 0.232,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_dsbltsss(mrkr)",
+        "similarity": 0.2878,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_dsbltsss(mrkr)",
+        "similarity": 0.2878,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_dsbltsss(mrkr)",
+        "similarity": 0.2878,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_dsbltsss(mrkr)",
+        "similarity": 0.259,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ctstlfrdvlpmnt(mrkr)",
+        "similarity": 0.2831,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ctstlfrdvlpmnt(mrkr)",
+        "similarity": 0.2831,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ctstlfrdvlpmnt(mrkr)",
+        "similarity": 0.2831,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_ctstlfrdvlpmnt(mrkr)",
+        "similarity": 0.2548,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_knwldgfrdvlpmnt(mrkr)",
+        "similarity": 0.285,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_knwldgfrdvlpmnt(mrkr)",
+        "similarity": 0.285,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_knwldgfrdvlpmnt(mrkr)",
+        "similarity": 0.285,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.brand",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_knwldgfrdvlpmnt(mrkr)",
+        "similarity": 0.2565,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_gndrqlt(mrkr)",
+        "similarity": 0.2757,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_gndrqlt(mrkr)",
+        "similarity": 0.2757,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_gndrqlt(mrkr)",
+        "similarity": 0.2757,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_gndrqlt(mrkr)",
+        "similarity": 0.2481,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnd",
+        "similarity": 0.3152,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnd",
+        "similarity": 0.3152,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnd",
+        "similarity": 0.3152,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnd",
+        "similarity": 0.2837,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnnm",
+        "similarity": 0.2945,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnnm",
+        "similarity": 0.2945,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnnm",
+        "similarity": 0.2945,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnnm",
+        "similarity": 0.2651,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstntp",
+        "similarity": 0.2805,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstntp",
+        "similarity": 0.2805,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstntp",
+        "similarity": 0.2805,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstntp",
+        "similarity": 0.2525,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnclss",
+        "similarity": 0.296,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnclss",
+        "similarity": 0.296,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnclss",
+        "similarity": 0.296,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnclss",
+        "similarity": 0.2664,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnsb-clss",
+        "similarity": 0.2994,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnsb-clss",
+        "similarity": 0.2994,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnsb-clss",
+        "similarity": 0.2994,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_rgnstnsb-clss",
+        "similarity": 0.2695,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntd",
+        "similarity": 0.3225,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntd",
+        "similarity": 0.3225,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntd",
+        "similarity": 0.3225,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntd",
+        "similarity": 0.2903,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntnm",
+        "similarity": 0.3005,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntnm",
+        "similarity": 0.3005,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntnm",
+        "similarity": 0.3005,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntnntnm",
+        "similarity": 0.2704,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_prjctbrwsrcntrd",
+        "similarity": 0.3198,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_prjctbrwsrcntrd",
+        "similarity": 0.3198,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_prjctbrwsrcntrd",
+        "similarity": 0.3198,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_prjctbrwsrcntrd",
+        "similarity": 0.2878,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnd",
+        "similarity": 0.2928,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnd",
+        "similarity": 0.2928,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnd",
+        "similarity": 0.2928,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnd",
+        "similarity": 0.2635,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnnm",
+        "similarity": 0.2581,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnnm",
+        "similarity": 0.2581,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnnm",
+        "similarity": 0.2581,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnnm",
+        "similarity": 0.2323,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnprcnt",
+        "similarity": 0.284,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnprcnt",
+        "similarity": 0.284,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnprcnt",
+        "similarity": 0.284,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_cntrrgnprcnt",
+        "similarity": 0.2556,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrd",
+        "similarity": 0.3286,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrd",
+        "similarity": 0.3286,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrd",
+        "similarity": 0.3286,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrd",
+        "similarity": 0.2957,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrnm",
+        "similarity": 0.2741,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrnm",
+        "similarity": 0.2741,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrnm",
+        "similarity": 0.2741,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.title",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrnm",
+        "similarity": 0.2467,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrprcnt",
+        "similarity": 0.3034,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrprcnt",
+        "similarity": 0.3034,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrprcnt",
+        "similarity": 0.3034,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_sctrprcnt",
+        "similarity": 0.2731,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_mntspnt",
+        "similarity": 0.2729,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "embed",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_mntspnt",
+        "similarity": 0.2729,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "cluster",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_mntspnt",
+        "similarity": 0.2729,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "majority",
+        "ground_truth": "\u2014"
+      },
+      {
+        "source": "real_walmart_amazon.id",
+        "target": "miller2_both_0_1_ac5_av_view_unionable.miller2_mntspnt",
+        "similarity": 0.2456,
+        "src_file": "walmart_amazon.csv",
+        "trg_file": "miller2_both_0_1_ac5_av_view_unionable.json",
+        "matcher": "weighted",
+        "ground_truth": "\u2014"
+      }
+    ],
+    "results": [],
+    "target_schema_results": {
+      "miller2_both_0_1_ac5_av_view_unionable": {
+        "total_combinations": 4,
+        "approach_accuracies": {},
+        "approach_scores": {}
+      }
+    },
+    "all_approaches": [],
+    "agreement_counts": [
+      {
+        "all_correct_count": 0,
+        "two_correct_count": 0,
+        "one_correct_count": 0,
+        "none_correct_count": 1
+      },
+      {
+        "all_correct_count": 0,
+        "two_correct_count": 0,
+        "one_correct_count": 0,
+        "none_correct_count": 1
+      },
+      {
+        "all_correct_count": 0,
+        "two_correct_count": 0,
+        "one_correct_count": 0,
+        "none_correct_count": 1
+      },
+      {
+        "all_correct_count": 0,
+        "two_correct_count": 0,
+        "one_correct_count": 0,
+        "none_correct_count": 1
+      }
+    ],
+    "total_agreement_counts": {
+      "all_correct_count": 0,
+      "two_correct_count": 0,
+      "one_correct_count": 0,
+      "none_correct_count": 1
+    },
+    "args": {
+      "seed": 1,
+      "source_table": "walmart_amazon",
+      "target_table": "miller2_both_0_1_ac5_av_view_unionable",
+      "output_name": null,
+      "coma_threshold": 0.0,
+      "pairwise": false,
+      "quiet": false,
+      "training": false,
+      "source_dir": "assets/test/source",
+      "target_dir": "assets/test/target",
+      "expected_dir": "assets/test/expected",
+      "use_cache": true,
+      "force_recompute": false,
+      "resume_from": null,
+      "create_checkpoints": true,
+      "cache_info": false,
+      "clear_cache": null,
+      "list_checkpoints": false
+    }
+  }
+}

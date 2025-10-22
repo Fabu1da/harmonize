@@ -11,8 +11,7 @@ def enrich_column(col, schema):
     return col  # Use simple column name for cache efficiency
 
 
-def clustering_matcher(source_schema, target_schema, n_clusters=None, return_cluster_info=False):
-    
+def clustering_matcher(source_schema, target_schema, n_clusters=None, return_cluster_info=False, model=None):
     source_cols = list(source_schema.properties.keys())
     target_cols = list(target_schema.properties.keys())
     all_columns = source_cols + target_cols
@@ -21,7 +20,7 @@ def clustering_matcher(source_schema, target_schema, n_clusters=None, return_clu
     enriched_texts = [enrich_column(col, source_schema) if col in source_cols else enrich_column(col, target_schema) for col in all_columns]
 
     # Get embeddings
-    embedding_matrix = np.array([get_embedding(text) for text in enriched_texts])
+    embedding_matrix = np.array([get_embedding(text, model) for text in enriched_texts])
    
     # Heuristic for cluster count
     if n_clusters is None:
@@ -58,7 +57,7 @@ def clustering_matcher(source_schema, target_schema, n_clusters=None, return_clu
                 for src in source_cols
             ]
             best_match, best_score = max(similarities, key=lambda x: x[1])
-            predicted_mapping[tgt] = (best_match, round(best_score, 4))
+            predicted_mapping[tgt] = (best_match, round(best_score, 4), f"Clustering similarity: {round(best_score, 4)}")
             continue
 
 
@@ -68,7 +67,7 @@ def clustering_matcher(source_schema, target_schema, n_clusters=None, return_clu
             for src, src_emb in candidates
         ]
         best_match, best_score = max(similarities, key=lambda x: x[1])
-        predicted_mapping[tgt] = (best_match, round(best_score, 4))
+        predicted_mapping[tgt] = (best_match, round(best_score, 4), f"Clustering similarity: {round(best_score, 4)}")
 
     if return_cluster_info:
         cluster_info = {

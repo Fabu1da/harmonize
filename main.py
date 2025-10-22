@@ -1,21 +1,22 @@
 #!/usr/bin/env python
 """
 harmonize: Schema Matching and Data Harmonization System
-Main entry point for the system providing schema matching capabilities using
-GPT, embedding-based, and clustering-based approaches with pairwise comparison analysis.
+Main entry point for the system providing schema matching capabilities.
+
+IMPORTANT: main_test() uses CARTESIAN PRODUCT matching:
+- Each source file is matched against EVERY target file
+- With N sources and M targets, you get N×M combinations
+- Example: 2 sources × 3 targets = 6 total matches
 """
 
-from analysis import show_distribution
 from dotenv import load_dotenv
 
-from core.run.global_sumary import generate_global_summaries
-from core.run.single_source import process_single_source_target_pair, get_total_agreement_counts, reset_total_agreement_counts
-
-from core.utils.comprehensive_summary import print_final_comprehensive_summary
-from core.utils.data import load_gpt_calibrator
-from core.utils.final_summary_tables import generate_final_summary_tables
+from core.run.single_source import process_single_source_target_pair
+from core.utils.data import load_confidence_calibrator
 from core.utils.save_calibrator import train_and_save_calibrator
+from reports.report import generate_reports
 
+from config import APPROACHES
 
 load_dotenv(override=True)
 
@@ -23,11 +24,11 @@ import argparse
 import asyncio
 
 import json
-from typing import  Optional
+from typing import Optional
 import logging
 import glob
 import os
-from tabulate import tabulate
+from perfomance import performance_report
 
 # Configure logging
 logging.basicConfig(
@@ -40,39 +41,20 @@ import pandas as pd
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
-from gpt_utils import gpt_column_mapping
 from json_schema import ObjectSchema
 from schema_inference import infer_schema
-from synthetic_data import apply_perturbations, score_mapping
-from embedding_utils import embedding_column_mapping
-from clustering_matcher import clustering_matcher 
+from synthetic_data import apply_perturbations, score_mapping 
 
-from gpt_calibration import GPTConfidenceCalibrator
-from pairwise_comparison import export_pairwise_results
-from ensemble_matchers import create_ensemble_matchers
-from run_pairwise_analysis import run_pairwise_analysis
+from confidence_calibration import ConfidenceCalibrator
 
 #core
-from core import  apply_rules, infer_rules
-from core.utils.cluster_statistics import cluster_stats_collector
+from core import apply_rules, infer_rules
 
-print(f"🔍 IMPORT DEBUG:")
-try:
-    from embedding_utils import embedding_column_mapping
-    print(f"   ✅ embedding_column_mapping imported successfully")
-except ImportError as e:
-    print(f"   ❌ embedding_column_mapping import failed: {e}")
-
-try:
-    from clustering_matcher import clustering_matcher
-    print(f"   ✅ clustering_matcher imported successfully")
-except ImportError as e:
-    print(f"   ❌ clustering_matcher import failed: {e}")
 
 
 def save_reasoning_to_json(predicted_mapping_with_reasoning, expected_mapping=None, output_name=None, source_schema=None, target_schema=None):
     """
-    Save GPT reasoning data to a structured JSON file.
+    Save reasoning data to a structured JSON file.
     
     Args:
         predicted_mapping_with_reasoning: Dict with structure {target_col: (source_col, confidence, reasoning)}
@@ -147,10 +129,9 @@ def save_reasoning_to_json(predicted_mapping_with_reasoning, expected_mapping=No
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(reasoning_data, f, indent=2, ensure_ascii=False)
     
-    print(f"\n💾 GPT Reasoning saved to: {filename}")
+    print(f"\n💾 Reasoning saved to: {filename}")
     print(f"   📊 Total mappings with reasoning: {len(reasoning_data['mappings'])}")
     
-    return filename
     return filename
 
 
@@ -187,174 +168,284 @@ def get_correctness_indicator(predicted_source, ground_truth_source, confidence=
 
 
 
+def load_ground_truth_for_pair(source_path: str, target_path: str, expected_dir: str = "./assets/test/expected") -> Optional[dict]:
+    """
+    Load ground truth for a specific source-target pair
+    
+    Args:
+        source_path: Path to source CSV file
+        target_path: Path to target JSON file
+        expected_dir: Directory containing ground truth files
+        
+    Returns:
+        Ground truth dictionary or None if not found
+    """
+    # Extract filenames without extensions
+    source_name = os.path.splitext(os.path.basename(source_path))[0]
+    target_name = os.path.splitext(os.path.basename(target_path))[0]
+    
+    # Try multiple naming patterns for ground truth files
+    possible_gt_names = [
+        f"{target_name}_mapping.json",
+        f"{source_name}_mapping.json", 
+        f"{source_name}_{target_name}_mapping.json",
+        f"{target_name}_{source_name}_mapping.json"
+    ]
+    
+    for gt_name in possible_gt_names:
+        gt_path = os.path.join(expected_dir, gt_name)
+        if os.path.exists(gt_path):
+            try:
+                with open(gt_path, 'r') as f:
+                    ground_truth = json.load(f)
+                print(f"✅ Loaded ground truth: {gt_path}")
+                return ground_truth
+            except Exception as e:
+                print(f"⚠️ Error loading {gt_path}: {e}")
+                continue
+        
+        # Also check rm/ subdirectory
+        gt_path_rm = os.path.join(expected_dir, "rm", gt_name)
+        if os.path.exists(gt_path_rm):
+            try:
+                with open(gt_path_rm, 'r') as f:
+                    ground_truth = json.load(f)
+                print(f"✅ Loaded ground truth: {gt_path_rm}")
+                return ground_truth
+            except Exception as e:
+                print(f"⚠️ Error loading {gt_path_rm}: {e}")
+                continue
+    
+    print(f"⚠️ No ground truth found for {source_name} → {target_name}")
+    return None
+
+
 def setup_evaluation():
     """Initialize logging and evaluation setup"""
     logging.info("🧪 Starting Real Data Evaluation")
     logging.info("=" * 60)
 
 
+async def load_schemas(source_table: str, target_table: str, source_dir: str, target_dir: str) -> tuple[pd.DataFrame, ObjectSchema, ObjectSchema]:
+    """
+    Load source data and both schemas from files.
+    
+    Args:
+        source_table: Name of source table (without extension)
+        target_table: Name of target table (without extension)
+        source_dir: Directory containing source files
+        target_dir: Directory containing target schema files
+        
+    Returns:
+        Tuple of (source_data, source_schema, target_schema)
+    """
+    source_data = pd.read_csv(f"{source_dir}/{source_table}.csv")
+    source_schema_path = f"{source_dir}/{source_table}.json"
+    target_schema_path = f"{target_dir}/{target_table}.json"
 
-async def main(args: argparse.ArgumentParser):
+    if os.path.exists(source_schema_path):
+        with open(source_schema_path) as f:
+            source_schema = ObjectSchema.model_validate_json(f.read())
+    else:
+        source_schema = await infer_schema(source_data)
+        print("Source Schema:", source_schema.model_dump_json())
+
+    with open(target_schema_path) as f:
+        target_schema = ObjectSchema.model_validate_json(f.read())
+
+    return source_data, source_schema, target_schema
+
+
+async def predict_mappings(source_schema: ObjectSchema, target_schema: ObjectSchema, expected_mapping: Optional[dict], seed: Optional[int], output_name: Optional[str]) -> dict[str, dict]:
+    """
+    Generate predictions using all configured approaches.
+    
+    Args:
+        source_schema: Source schema object
+        target_schema: Target schema object
+        expected_mapping: Optional ground truth mapping
+        seed: Random seed for reproducibility
+        output_name: Name for output files
+        
+    Returns:
+        Dictionary mapping approach names to their predictions
+    """
+    predictions_by_approach = {}
+    
+    for approach, approach_name in APPROACHES:
+        predictions_by_approach[approach_name] = approach.predict(
+            source_schema=source_schema,
+            target_schema=target_schema,
+            seed=seed,
+        )
+        save_reasoning_to_json(
+            predictions_by_approach[approach_name], 
+            expected_mapping, 
+            output_name, 
+            source_schema, 
+            target_schema
+        )
+    
+    return predictions_by_approach
+
+
+async def evaluate_predictions(predicted_mapping: dict, expected_mapping: Optional[dict], target_schema: ObjectSchema) -> tuple[tuple[float, dict], int]:
+    """
+    Evaluate predictions against ground truth or use confidence-based fallback.
+    
+    Args:
+        predicted_mapping: The predicted column mappings
+        expected_mapping: Ground truth mapping (can be None)
+        target_schema: Target schema for weight calculation
+        
+    Returns:
+        Tuple of (score, weight)
+    """
+    if expected_mapping is None:
+        conf_sum = sum(conf for _, conf in predicted_mapping.values())
+        total = len(target_schema.properties)
+        fallback_score = conf_sum / total if total > 0 else 0.0
+        score = (fallback_score, {"note": "proxy score based on high-confidence matches"})
+        weight = total
+    else:
+        score = score_mapping(predicted_mapping, expected_mapping)
+        weight = len(target_schema.properties.keys())
+        print("Score:", score)
+    
+    return score, weight
+
+
+async def apply_mapping_and_save(source_data: pd.DataFrame, predicted_mapping: dict, target_schema: ObjectSchema, output_name: str):
+    """
+    Apply the predicted mapping to source data and save results.
+    
+    Args:
+        source_data: Source dataframe
+        predicted_mapping: The predicted column mappings
+        target_schema: Target schema
+        output_name: Output file path
+    """
+    rules = await infer_rules(predicted_mapping, target_schema)
+    predicted_data = apply_rules(source_data, rules)
+    predicted_data.to_csv(output_name, index=False)
+
+
+
+async def train_confidence_calibrators(detailed_matches: list, all_ground_truth: list):
+    """
+    Train and save confidence calibrators for all approaches.
+    
+    Args:
+        detailed_matches: List of detailed match results for training
+    """
+    for approach, approach_name in APPROACHES:
+        confidence_calibrator = await load_confidence_calibrator(approach_name)
+        if not confidence_calibrator:
+            print(f"⚠️ No confidence calibrator found for {approach_name}, skipping training")
+            continue
+        
+        confidence_calibrator.collect_training_data(detailed_matches, all_ground_truth)
+        train_and_save_calibrator(confidence_calibrator, approach_name)
+
+
+async def main(args: argparse.Namespace):
     """Main entry point for the harmonize system."""
     os.chdir(os.path.dirname(__file__))
-    
-    # Check if user wants to run quiet test mode
-    if getattr(args, 'quiet', False):
-        await main_test_quiet(args)
-        return
-    
-    # Check if user wants to run pairwise analysis
-    if getattr(args, 'pairwise', False):
-        logging.info("Running Step 2: Pairwise Matcher Analysis...")
-        await run_pairwise_analysis()
-        return
-    
-    # Run default schema matching pipeline
     await main_test(args)
 
 
 
-
-# Initialize global GPT calibrator
-gpt_calibrator = GPTConfidenceCalibrator()
-
-
-
-
-async def main_test_quiet(args: argparse.Namespace):
+async def process_pair(source_path: str, target_path: str, args: argparse.Namespace) -> dict:
     """
-    Quiet test mode for final evaluation - suppresses verbose output.
-    """
-    # Process single specified pair
-    if not (args.source_table and args.target_table):
-        print("❌ Quiet mode requires --source-table and --target-table")
-        return
+    Process a single source-target pair and return detailed match results.
     
-    print(f"🔄 Evaluating {args.source_table} → {args.target_table}")
-    
-    # Temporarily suppress logging to reduce output
-    original_level = logging.getLogger().level
-    logging.getLogger().setLevel(logging.ERROR)
-    
-    try:
-        # Use the normal main_test but with suppressed logging
-        await main_test(args)
-        print(f"✅ Test evaluation completed for {args.source_table} → {args.target_table}")
-    finally:
-        # Restore original logging level
-        logging.getLogger().setLevel(original_level)
-    
-    return True
+    Args:
+        source_csv_path: Path to source CSV file
+        target_path: Path to target JSON schema file
+        args: Command-line arguments
+    """ 
+    # Initialize accumulators
+    detailed_matches = []
+    all_ground_truth_data = []
+    dataset_names = []
 
+    def pick(paths, name, ext):
+        if name:
+            p = os.path.join(args.source_dir if ext==".csv" else args.target_dir, f"{name}{ext}")
+            return [p] if os.path.exists(p) else []
+        return paths
+
+    source_paths = pick(source_path, args.source_table, ".csv")
+    target_paths = pick(target_path, args.target_table, ".json")
+
+    if not source_paths:
+        source_paths = source_paths
+    if not target_paths:
+        target_paths = target_paths
+        
+        # Process each source against each target (Cartesian product)
+    for source_csv_path in source_paths:
+        source_name = os.path.splitext(os.path.basename(source_csv_path))[0]
+        logging.info(f"Processing source: {source_name}")
+        
+        for target_path in tqdm(target_paths, desc=f"Matching {source_name}"):
+            target_name = os.path.splitext(os.path.basename(target_path))[0]
+            pair_name = f"{source_name}_to_{target_name}"
+            
+            print(f"\n[INFO] Processing: {source_name} → {target_name}")
+            
+            # Process this source-target pair
+            matched_predictions = await process_single_source_target_pair(
+                source_csv_path, target_path, args
+            )
+            
+            detailed_matches.append(matched_predictions)
+            
+            # Load corresponding ground truth for this pair (if exists)
+            pair_ground_truth = load_ground_truth_for_pair(
+                source_csv_path, target_path, args.expected_dir
+            )
+            all_ground_truth_data.append(pair_ground_truth)
+            dataset_names.append(pair_name)
+
+    return detailed_matches, all_ground_truth_data, dataset_names
+        
+        
 
 async def main_test(args: argparse.Namespace):
     """
-    Enhanced main_test that can process either specific source/target files or all files.
-    Uses synthetic data as ground truth for real source data evaluation.
+    Process all source-target pairs (Cartesian product) and generate comprehensive evaluation reports.
+    For each source file, matches against each target file (N sources × M targets = N×M pairs).
     """
-    # Initialize data structures
-    results = []
-    detailed_matches = []
-    all_pairwise_results = []
-    all_triple_results = []
-    agreement_counts = []
-    target_schema_results = {}
-    all_approaches = ["GPT", "Embedding", "Clustering", "Majority Vote", "Weighted Ensemble"]
-
-    # Setup evaluation
     setup_evaluation()
+    os.makedirs("output/results", exist_ok=True)
     
-    # Reset agreement counts from any previous runs
-    reset_total_agreement_counts()
+  
     
-    # Load GPT calibrator
-    gpt_calibrator = await load_gpt_calibrator()
+    # Discover all source and target files
+    source_paths = sorted(glob.glob(f"{args.source_dir}/*.csv"))
+    target_paths = sorted(glob.glob(f"{args.target_dir}/*.json"))
 
-    # Determine which files to process
-    if args.source_table and args.target_table:
-        # Process single specified pair
-        logging.info(f"📁 Processing specified pair: {args.source_table} → {args.target_table}")
-        source_paths = [args.source_table]
-        target_paths = [args.target_table]
-    else:
-        # Process all files (original behavior)
-        source_paths = sorted(glob.glob(f"{args.source_dir}/*.csv"))
-        target_paths = sorted(glob.glob(f"{args.target_dir}/*.json"))
+    detailed_matches, all_ground_truth_data, dataset_names = await process_pair(source_paths, target_paths, args)
 
-    # Process source files
-    for source_csv_path in source_paths:
-        logging.info(f"📁 Processing source: {source_csv_path}")
-        
-        # Process target files for this source
-        if args.source_table and args.target_table:
-            # Single pair mode - process only the specified target
-            # Construct full path for the target file
-            target_paths_for_source = [f"{args.target_dir}/{args.target_table}.json"]
-        else:
-            # All files mode - process all targets for each source
-            target_paths_for_source = target_paths
-            
-        for target_path in tqdm(target_paths_for_source):
-            await process_single_source_target_pair(
-                source_csv_path, target_path, args, gpt_calibrator,
-                all_pairwise_results, all_triple_results, detailed_matches,
-                results, target_schema_results, all_approaches,
-                agreement_counts, args.source_dir, args.target_dir, args.expected_dir
-            )
-
-
-    print("\n🔍 Agreement Distribution Analysis Across All Comparisons")
-    print("=" * 60)
-    print(f"Total comparisons analyzed: {len(agreement_counts)}")
+    print(f"\n✅ Processed {len(detailed_matches)} total source-target combinations")
     
-    # Get total accumulated agreement counts
-    total_agreement_counts = get_total_agreement_counts()
-    if total_agreement_counts:
-        print("\n📊 Total Agreement Counts Across All Comparisons:")
-        print(f"  All 3 matchers correct: {total_agreement_counts['all_correct_count']}")
-        print(f"  Exactly 2 matchers correct: {total_agreement_counts['two_correct_count']}")
-        print(f"  Exactly 1 matcher correct: {total_agreement_counts['one_correct_count']}")
-        print(f"  No matchers correct: {total_agreement_counts['none_correct_count']}")
-        
-        total_predictions = sum(total_agreement_counts.values())
-        if total_predictions > 0:
-            print(f"\n📈 Agreement Percentages:")
-            print(f"  All 3 correct: {total_agreement_counts['all_correct_count']/total_predictions*100:.1f}%")
-            print(f"  2 correct: {total_agreement_counts['two_correct_count']/total_predictions*100:.1f}%")
-            print(f"  1 correct: {total_agreement_counts['one_correct_count']/total_predictions*100:.1f}%")
-            print(f"  0 correct: {total_agreement_counts['none_correct_count']/total_predictions*100:.1f}%")
+    # Train calibrators
+    await train_confidence_calibrators(detailed_matches, all_ground_truth_data)
     
-    print(f"\n📋 Individual Agreement Counts per Source-Target Pair:")
-    for i, counts in enumerate(agreement_counts):
-        print(f"  Pair {i+1}: {counts}")
-
-    # Generate global summaries
-    generate_global_summaries(all_triple_results, all_pairwise_results)
-    
-    # Train and save calibrator
-    train_and_save_calibrator(gpt_calibrator)
-    
-    # Export pairwise comparison results
-    print(f"\n🔄 STEP 2 COMPLETE: Exporting Pairwise Comparison Results")
-    print("=" * 70)
-    if all_pairwise_results:
-        export_pairwise_results(all_pairwise_results, "complete_pairwise_analysis")
-    else:
-        print("⚠️ No pairwise results to export")
-        
-        
-    print("\n🔄 STEP 3 COMPLETE: Generating Final Summary Tables----->", agreement_counts)
-
-    show_distribution(agreement_counts)
-
-    # Generate final summary tables
-    generate_final_summary_tables(results, detailed_matches, target_schema_results, all_approaches)
-    
-    # Print final comprehensive summary
-    print_final_comprehensive_summary(all_triple_results, all_pairwise_results, results)
+    # Generate all reports
+    generate_reports(
+        detailed_matches, 
+        all_ground_truth_data, 
+        dataset_names, 
+        args.expected_dir
+    )
 
 
 async def main_all_expected(args: argparse.Namespace):
+    """
+    Process all expected files and compute overall score.
+    """
     score_sum = 0
     weight_sum = 0
 
@@ -377,7 +468,11 @@ async def main_all_expected(args: argparse.Namespace):
         print("[INFO]", expected_name, source_table, target_table)
         print("Expected Mapping:", expected_mapping)
         
-        predicted_mapping, score, weight = await main_core(source_table, target_table, expected_mapping, seed=args.seed, output_name=args.output_name, source_dir=args.source_dir, target_dir=args.target_dir)
+        predicted_mapping, score, weight = await process_expectation(
+            source_table, target_table, expected_mapping, 
+            seed=args.seed, output_name=args.output_name, 
+            source_dir=args.source_dir, target_dir=args.target_dir
+        )
         score_sum += score[0] * weight
         weight_sum += weight
 
@@ -385,7 +480,10 @@ async def main_all_expected(args: argparse.Namespace):
     print("Overall Score", overall_score)
 
 
-async def main_synthetic(args: argparse.ArgumentParser):
+async def main_synthetic(args: argparse.Namespace):
+    """
+    Generate and process synthetic test data.
+    """
     score_sum = 0
     weight_sum = 0
 
@@ -415,8 +513,6 @@ async def main_synthetic(args: argparse.ArgumentParser):
             continue
 
         source_schema, expected_mapping = await apply_perturbations(target_schema, seed=args.seed)
-        # print("Source Schema:", source_schema.model_dump_json())
-        # print("Expected Mapping:", expected_mapping)
         
         out_name = f"{target_table.replace('/', '_')}__synthetic.json"
         os.makedirs("./assets/test/expected", exist_ok=True)
@@ -434,7 +530,7 @@ async def main_synthetic(args: argparse.ArgumentParser):
         }, f, indent=2)
         
 
-        predicted_mapping, score, weight = await main_core_inner_with_ensembles(
+        predicted_mapping, score, weight = await process_schemas(
             None, source_schema, target_schema, expected_mapping, 
             seed=args.seed, output_name=args.output_name
         )
@@ -446,283 +542,37 @@ async def main_synthetic(args: argparse.ArgumentParser):
     return overall_score
 
 
-async def main_core(source_table: str, target_table: str, expected_mapping: Optional[dict[str, Optional[str]]] = None, seed: Optional[int] = None, output_name: Optional[str] = None, source_dir: str = "./assets/test/source", target_dir: str = "./assets/test/target"):
-    source_data = pd.read_csv(f"{source_dir}/{source_table}.csv")
-    source_schema_path = f"{source_dir}/{source_table}.json"
-    target_schema_path = f"{target_dir}/{target_table}.json"
-
-    if os.path.exists(source_schema_path):
-        with open(source_schema_path) as f:
-            source_schema = ObjectSchema.model_validate_json(f.read())
-    else:
-        source_schema = await infer_schema(source_data)
-        print("Source Schema:", source_schema.model_dump_json())
-
-    with open(target_schema_path) as f:
-        target_schema = ObjectSchema.model_validate_json(f.read())
-
-    #expected_data = pd.read_csv(f"./assets/test/expected/{expected_name}.csv")
-
-    return await main_core_inner(source_data, source_schema, target_schema, expected_mapping, seed=seed, output_name=output_name)
-
-
-
-async def main_core_inner_with_ensembles(source_data: Optional[pd.DataFrame], source_schema: ObjectSchema, target_schema: ObjectSchema, expected_mapping: Optional[dict[str, Optional[str]]] = None, seed: Optional[int] = None, output_name: Optional[str] = None):
+async def process_expectation(source_table: str, target_table: str, expected_mapping: Optional[dict[str, Optional[str]]] = None, seed: Optional[int] = None, output_name: Optional[str] = None, source_dir: str = "./assets/test/source", target_dir: str = "./assets/test/target"):
     """
-    Enhanced version of main_core_inner that includes ensemble evaluation with ground truth.
+    Process a single expectation by loading schemas and delegating to process_schemas.
     """
-    # Get individual matcher predictions with reasoning
-    predicted_mapping_with_reasoning = await gpt_column_mapping(source_schema, target_schema, seed=seed)
-    
-    # Extract just the mapping for compatibility with existing code
-    predicted_mapping = {k: (v[0], v[1]) for k, v in predicted_mapping_with_reasoning.items()}
-    
-    print(f"\n🔍 GPT MATCHER DEBUG WITH REASONING:")
-    for target_col, (source_col, confidence, reasoning) in predicted_mapping_with_reasoning.items():
-        print(f"   {target_col} -> {source_col} (conf: {confidence:.3f})")
-        print(f"      Reasoning: {reasoning}")
-    
-    save_reasoning_to_json(
-        predicted_mapping_with_reasoning, 
-        expected_mapping, 
-        output_name, 
-        source_schema, 
-        target_schema
-    )
-    embed_predicted = embedding_column_mapping(
-        source_columns=list(source_schema.properties.keys()),
-        target_columns=list(target_schema.properties.keys()),
-        threshold=0
+    source_data, source_schema, target_schema = await load_schemas(
+        source_table, target_table, source_dir, target_dir
     )
     
-   # In your main.py, replace the existing debug blocks with more detailed ones:
-
-    # After embed_predicted = embedding_column_mapping(...)
-    print(f"\n🔍 EMBEDDING MATCHER DETAILED DEBUG:")
-    print(f"   Source columns: {list(source_schema.properties.keys())}")
-    print(f"   Target columns: {list(target_schema.properties.keys())}")
-    print(f"   Number of source columns: {len(source_schema.properties.keys())}")
-    print(f"   Number of target columns: {len(target_schema.properties.keys())}")
-    print(f"   Threshold: 0")
-    print(f"   Function called successfully: {embed_predicted is not None}")
-    print(f"   Return type: {type(embed_predicted)}")
-    print(f"   Embedding predictions count: {len(embed_predicted) if embed_predicted else 'None/Empty'}")
-    print(f"   Embedding results: {embed_predicted}")
-
- 
-    
-    
-
-    cluster_predicted, cluster_info = clustering_matcher(source_schema, target_schema, return_cluster_info=True)
-    
-    # Collect cluster statistics
-    dataset_name = output_name if output_name else "unknown_dataset"
-    cluster_stats_collector.add_cluster_info(cluster_info, dataset_name)
-    
-    # ADD THIS DEBUG BLOCK:
-    # After cluster_predicted = clustering_matcher(...)
-    print(f"\n🔍 CLUSTERING MATCHER DETAILED DEBUG:")
-    print(f"   Source schema type: {type(source_schema)}")
-    print(f"   Target schema type: {type(target_schema)}")
-    print(f"   Function called successfully: {cluster_predicted is not None}")
-    print(f"   Return type: {type(cluster_predicted)}")
-    print(f"   Clustering predictions count: {len(cluster_predicted) if cluster_predicted else 'None/Empty'}")
-    print(f"   Clusters requested: {cluster_info['n_clusters_requested']}")
-    print(f"   Clusters actually used: {cluster_info['n_clusters_actual']}")
-    print(f"   Total columns: {cluster_info['total_columns']}")
-    print(f"   Clustering results: {cluster_predicted}")
-    
-    
-    # Create ensemble matchers
-    majority_ensemble, weighted_ensemble = create_ensemble_matchers(
-        predicted_mapping,    # GPT predictions
-        embed_predicted,      # Embedding predictions
-        cluster_predicted,    # Clustering predictions
+    return await process_schemas(
+        source_data, source_schema, target_schema, expected_mapping, 
+        seed=seed, output_name=output_name
     )
 
-    # Get ensemble predictions
-    majority_predicted = majority_ensemble.predict(source_schema, target_schema)
-    weighted_predicted = weighted_ensemble.predict(source_schema, target_schema)
 
-    if expected_mapping is None:
-        conf_sum = sum(conf for _, conf in predicted_mapping.values())
-        total = len(target_schema.properties)
-        fallback_score = conf_sum / total if total > 0 else 0.0
-        score = (fallback_score, {"note": "proxy score based on high-confidence matches"})
-        weight = total
-    else:
-        # Enhanced comparison table with ensembles
-        comparison_table = []
-        headers = [
-            "Target", "Expected",
-            "GPT Match", "GPT Score", "GPT Reasoning",
-            "Embed Match", "Embed Score",
-            "Cluster Match", "Cluster Score",
-            "Majority Match", "Majority Score",
-            "Weighted Match", "Weighted Score"
-        ]
-
-        for col in target_schema.properties.keys():
-            expected = expected_mapping.get(col, "—")
-
-            gpt_match, gpt_score, gpt_reasoning = predicted_mapping_with_reasoning.get(col, ("—", 0.0, "No reasoning available"))
-            emb_match, emb_score = embed_predicted.get(col, ("—", 0.0))
-            cluster_match, cluster_score = cluster_predicted.get(col, ("—", 0.0))
-            majority_match, majority_score = majority_predicted.get(col, ("—", 0.0))
-            weighted_match, weighted_score = weighted_predicted.get(col, ("—", 0.0))
-            
-            # Truncate reasoning for table display
-            truncated_reasoning = gpt_reasoning[:40] + "..." if len(gpt_reasoning) > 40 else gpt_reasoning
-            
-            comparison_table.append([
-                col, expected,
-                gpt_match, f"{gpt_score:.2f}", truncated_reasoning,
-                emb_match, f"{emb_score:.2f}",
-                cluster_match, f"{cluster_score:.2f}",
-                majority_match, f"{majority_score:.2f}",
-                weighted_match, f"{weighted_score:.2f}"
-            ])
-
-        print("\n📊 Complete Matcher Comparison (Including GPT Reasoning)")
-        print(tabulate(comparison_table, headers=headers, tablefmt="fancy_grid"))
-        
-        # Print detailed reasoning for each match
-        print("\n🧠 Detailed GPT Reasoning:")
-        print("=" * 60)
-        for col in target_schema.properties.keys():
-            if col in predicted_mapping_with_reasoning:
-                gpt_match, gpt_score, gpt_reasoning = predicted_mapping_with_reasoning[col]
-                expected = expected_mapping.get(col, "—")
-                correctness = "✅ CORRECT" if gpt_match == expected else "❌ INCORRECT"
-                print(f"\nTarget: {col}")
-                print(f"Expected: {expected} | Predicted: {gpt_match} | {correctness}")
-                print(f"Confidence: {gpt_score:.3f}")
-                print(f"Reasoning: {gpt_reasoning}")
-                print("-" * 40)
-
-        # Calculate accuracy for each approach
-        approaches = [
-            ("GPT", predicted_mapping),
-            ("Embedding", embed_predicted),
-            ("Clustering", cluster_predicted),
-            ("Majority Vote", majority_predicted),
-            ("Weighted Ensemble", weighted_predicted)
-        ]
-        
-        accuracy_table = []
-        for name, predictions in approaches:
-            correct_count = sum(1 for col, expected_src in expected_mapping.items()
-                              if col in predictions and predictions[col][0] == expected_src)
-            total_count = len(expected_mapping)
-            accuracy = correct_count / total_count if total_count > 0 else 0.0
-            avg_confidence = sum(conf for _, conf in predictions.values()) / len(predictions) if predictions else 0.0
-            
-            accuracy_table.append([name, f"{accuracy:.3f}", f"{avg_confidence:.3f}", f"{correct_count}/{total_count}"])
-        
-        print("\n🎯 Accuracy Comparison")
-        print(tabulate(
-            accuracy_table,
-            headers=["Approach", "Accuracy", "Avg Confidence", "Correct/Total"],
-            tablefmt="fancy_grid"
-        ))
-
-        score = score_mapping(predicted_mapping, expected_mapping)
-        weight = len(target_schema.properties.keys())
-        print("Score:", score)
-
+async def process_schemas(source_data: Optional[pd.DataFrame], source_schema: ObjectSchema, target_schema: ObjectSchema, expected_mapping: Optional[dict[str, Optional[str]]] = None, seed: Optional[int] = None, output_name: Optional[str] = None):
+    """
+    Core processing logic: predict mappings, evaluate, and optionally apply transformations.
+    """
+    predictions_by_approach = await predict_mappings(
+        source_schema, target_schema, expected_mapping, seed, output_name
+    )
+    
+    # Use the first approach's predictions for evaluation (or implement ensemble logic)
+    predicted_mapping = predictions_by_approach[APPROACHES[0][1]]
+    
+    score, weight = await evaluate_predictions(
+        predicted_mapping, expected_mapping, target_schema
+    )
+    
     if source_data is not None and output_name:
-        rules = await infer_rules(predicted_mapping, target_schema)
-        predicted_data = apply_rules(source_data, rules)
-        predicted_data.to_csv(output_name, index=False)
-
-    return predicted_mapping, score, weight
-
-
-async def main_core_inner(source_data: Optional[pd.DataFrame], source_schema: ObjectSchema, target_schema: ObjectSchema, expected_mapping: Optional[dict[str, Optional[str]]] = None, seed: Optional[int] = None, output_name: Optional[str] = None):
-    predicted_mapping_with_reasoning = await gpt_column_mapping(source_schema, target_schema, seed=seed)
-    
-    # Extract just the mapping for compatibility with existing code
-    predicted_mapping = {k: (v[0], v[1]) for k, v in predicted_mapping_with_reasoning.items()}
-    
-    embed_predicted = embedding_column_mapping(
-        source_columns=list(source_schema.properties.keys()),
-        target_columns=list(target_schema.properties.keys()),
-        threshold=0
-    )
-
-    cluster_predicted, cluster_info = clustering_matcher(source_schema, target_schema, return_cluster_info=True)
-    
-    # Collect cluster statistics  
-    dataset_name = output_name if output_name else "main_core_inner"
-    cluster_stats_collector.add_cluster_info(cluster_info, dataset_name)
-    # gittables_predicted = gittables_matcher(list(target_schema.properties.keys()))  # <- GitTables matcher
-
-    # Save GPT reasoning to JSON file
-    save_reasoning_to_json(
-        predicted_mapping_with_reasoning, 
-        expected_mapping, 
-        output_name, 
-        source_schema, 
-        target_schema
-    )
-
-    if expected_mapping is None:
-        conf_sum = sum(conf for _, conf in predicted_mapping.values())
-        total = len(target_schema.properties)
-        fallback_score = conf_sum / total if total > 0 else 0.0
-        score = (fallback_score, {"note": "proxy score based on high-confidence matches"})
-        weight = total
-    else:
-        comparison_table = []
-        headers = [
-            "Target", "Expected",
-            "GPT Match", "GPT Score", "GPT Reasoning",
-            "Embed Match", "Embed Score",
-            "Cluster Match", "Cluster Score",
-        ]
-
-        for col in target_schema.properties.keys():
-            expected = expected_mapping.get(col, "—")
-
-            gpt_match, gpt_score, gpt_reasoning = predicted_mapping_with_reasoning.get(col, ("—", 0.0, "No reasoning available"))
-            emb_match, emb_score = embed_predicted.get(col, ("—", 0.0))
-            cluster_match, cluster_score = cluster_predicted.get(col, ("—", 0.0))
-            
-            # Truncate reasoning for table display
-            truncated_reasoning = gpt_reasoning[:40] + "..." if len(gpt_reasoning) > 40 else gpt_reasoning
-            
-            comparison_table.append([
-                col, expected,
-                gpt_match, f"{gpt_score:.2f}", truncated_reasoning,
-                emb_match, f"{emb_score:.2f}",
-                cluster_match, f"{cluster_score:.2f}"
-            ])
-
-        print("\n📊 Combined Matcher Comparison (Including GPT Reasoning)")
-        print(tabulate(comparison_table, headers=headers, tablefmt="fancy_grid"))
-        
-        # Print detailed reasoning for each match
-        print("\n🧠 Detailed GPT Reasoning:")
-        print("=" * 60)
-        for col in target_schema.properties.keys():
-            if col in predicted_mapping_with_reasoning:
-                gpt_match, gpt_score, gpt_reasoning = predicted_mapping_with_reasoning[col]
-                expected = expected_mapping.get(col, "—")
-                correctness = "✅ CORRECT" if gpt_match == expected else "❌ INCORRECT"
-                print(f"\nTarget: {col}")
-                print(f"Expected: {expected} | Predicted: {gpt_match} | {correctness}")
-                print(f"Confidence: {gpt_score:.3f}")
-                print(f"Reasoning: {gpt_reasoning}")
-                print("-" * 40)
-
-        score = score_mapping(predicted_mapping, expected_mapping)
-        weight = len(target_schema.properties.keys())
-        print("Score:", score)
-
-    if source_data is not None and output_name:
-        rules = await infer_rules(predicted_mapping, target_schema)
-        predicted_data = apply_rules(source_data, rules)
-        predicted_data.to_csv(output_name, index=False)
+        await apply_mapping_and_save(source_data, predicted_mapping, target_schema, output_name)
 
     return predicted_mapping, score, weight
 
@@ -751,43 +601,6 @@ if __name__ == "__main__":
     parser.add_argument("--target-dir", default="./assets/test/target", help="Directory containing target JSON schema files")
     parser.add_argument("--expected-dir", default="./assets/test/expected", help="Directory containing expected ground truth mapping files")
 
-    
     args = parser.parse_args()
-    
-    # Handle training mode
-    if args.training:
-        from ensemble_weight_trainer import EnsembleWeightTrainer
-        print("🚂 Training Mode: Optimizing ensemble weights")
-        print("=" * 50)
-        
-        trainer = EnsembleWeightTrainer()
-        
-        # Check if we have results to train on
-        if os.path.exists("output/real_data_detailed_matches.json"):
-            # Add current results as training data
-            dataset_name = f"training_run_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}"
-            trainer.add_training_data("output/real_data_detailed_matches.json", dataset_name)
-            
-            # Train optimal weights
-            training_results = trainer.train_weights(validation_split=0.3)
-            
-            # Show optimal weights for reference
-            optimal = trainer.get_optimal_weights()
-            if optimal:
-                print(f"\n🎯 TRAINING COMPLETE!")
-                print(f"✅ Optimal weights saved and will be used automatically:")
-                print(f"   • GPT: {optimal['gpt_weight']}")
-                print(f"   • Embedding: {optimal['embed_weight']}")
-                print(f"   • Clustering: {optimal['cluster_weight']}")
-                print(f"   • Configuration: {optimal['config_name']}")
-                print(f"   • Validation Score: {optimal['val_score']:.3f}")
-                print(f"\n📄 Next Steps:")
-                print(f"   • Run your normal pipeline - trained weights load automatically")
-                print(f"   • Training results saved in assets/training/training/results/")
-        else:
-            print("❌ No training data found!")
-            print("💡 Run your normal pipeline first to generate training data:")
-            print("   python3 main.py --source-table <source> --target-table <target>")
-    else:
-        # Normal pipeline execution
-        asyncio.run(main(args))
+
+    asyncio.run(main(args))
