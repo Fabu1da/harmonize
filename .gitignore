@@ -125,3 +125,7 @@ Jupyter_env
 *.csv
 *.iwa
 dump
+
+Monitoring_data/
+cache_storage/embedding_cache.pkl
+todo/
