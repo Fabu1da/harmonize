@@ -132,7 +132,7 @@ todo/
 *.tex
 *.zip
 paper/
-*.pki
+*.pkl
 COMA/
 cache_storage/embedding_cache.pkl
 Monitoring_data/
