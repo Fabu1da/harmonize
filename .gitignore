@@ -134,3 +134,4 @@ todo/
 paper/
 *.pki
 COMA/
+cache_storage/embedding_cache.pkl
