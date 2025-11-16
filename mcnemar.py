@@ -1,302 +1,385 @@
-from config import APPROACHES
-from scipy.stats import chi2
-from tabulate import tabulate
+#!/usr/bin/env python3
+import dotenv
+
+dotenv.load_dotenv(override=True)
+
+import os
 import json
-from typing import Union, List, Dict
+import glob
+from itertools import combinations
+from collections import defaultdict
 
-import os, glob, json
-import re
+from tqdm import tqdm
+from scipy.stats import binomtest
+from config import APPROACH_NAMES, APPROACHES
 
-
-from scipy.stats import chi2
-from typing import Union, List, Dict, Tuple, Any
-
-import os, glob, json
-import re
+APPROACH_NAMES = APPROACH_NAMES
 
 
-def natural_key(path: str):
-    # natural sort so "..._2.json" comes before "..._10.json"
-    return [int(t) if t.isdigit() else t.lower() for t in re.split(r'(\d+)', os.path.basename(path))]
-
-
-def load_expected_ground_truth(expected_dir: str):
+def mcnemar_counts(corr_A, corr_B):
     """
-    Finds JSON files in expected_dir.
-    Returns either a single file path (string) or a list of file paths (strings).
-    Both are accepted by format_ground_truth_for_mcnemar.
+    Given correctness vectors for A and B (dict[target] -> 0/1),
+    return n01 (A wrong, B right), n10 (A right, B wrong).
     """
-    files = sorted(glob.glob(os.path.join(expected_dir, "*.json")), key=natural_key)
-    if not files:
-        raise FileNotFoundError(f"No JSON files found in: {expected_dir}")
-    return files[0] if len(files) == 1 else files
+    n01 = 0
+    n10 = 0
+    for t in corr_A.keys() & corr_B.keys():
+        a = corr_A[t]
+        b = corr_B[t]
+        if a == 0 and b == 1:
+            n01 += 1
+        elif a == 1 and b == 0:
+            n10 += 1
+    return n01, n10
 
 
-def load_ground_truth_from_expected_folder(expected_dir: str) -> list:
+def mcnemar_from_counts(n01, n10):
     """
-    (Optional helper) Eagerly loads and converts each file to target->source dict.
-    Not required by mcnemar_analysis, but kept for convenience/debug.
+    Compute McNemar statistics from aggregated counts.
+    Returns dict with chi2, p_value, winner ("A"/"B"/"tie").
     """
-    def natural_sort_key(path: str):
-        return [int(t) if t.isdigit() else t.lower()
-                for t in re.split(r'(\d+)', os.path.basename(path))]
+    n = n01 + n10
+    if n == 0:
+        return {
+            "chi2": 0.0,
+            "p_value": 1.0,
+            "winner": "tie",
+        }
 
-    def convert_mapping_file(filepath: str) -> dict:
-        with open(filepath, 'r') as f:
-            data = json.load(f)
+    chi2 = ((abs(n01 - n10) - 1) ** 2) / n
+    p = binomtest(
+        min(n01, n10),
+        n,
+        p=0.5,
+        alternative="two-sided"
+    ).pvalue
 
-        # Accept both {"matches":[...]} or plain dict mapping
-        if isinstance(data, dict) and "matches" in data:
-            mapping = {}
-            for match in data["matches"]:
-                t = match.get("target_column")
-                s = match.get("source_column")
-                if t and s:
-                    mapping[t] = s
-            return mapping
-        elif isinstance(data, dict):
-            # assume already target->source
-            return {k: v for k, v in data.items() if v is not None}
-        else:
-            raise ValueError(f"Unsupported ground truth file format in {filepath}")
-
-    files = sorted(glob.glob(os.path.join(expected_dir, "*.json")), key=natural_sort_key)
-    if not files:
-        raise FileNotFoundError(f"No JSON files found in: {expected_dir}")
-
-    gt_list = []
-    for filepath in files:
-        try:
-            mapping = convert_mapping_file(filepath)
-            gt_list.append(mapping)
-            print(f"✓ Loaded: {os.path.basename(filepath)} ({len(mapping)} mappings)")
-        except Exception as e:
-            print(f"✗ Error loading {os.path.basename(filepath)}: {e}")
-    return gt_list
-
-
-# ---------- NEW: normalize ground truth in any supported format ----------
-def format_ground_truth_for_mcnemar(
-    ground_truth_data: Union[
-        Dict[str, str],
-        List[Union[Dict[str, str], str]],
-        str
-    ]
-) -> List[Dict[str, str]]:
-    """
-    Normalize ground truth into a list[dict[target_col -> source_col]].
-    """
-    def _convert_one(item: Any) -> Dict[str, str]:
-        # If item is a file path, load it
-        if isinstance(item, str):
-            if not os.path.exists(item):
-                raise FileNotFoundError(f"Ground truth file not found: {item}")
-            with open(item, "r") as f:
-                item = json.load(f)
-
-        # If item is already a dict, convert if needed
-        if isinstance(item, dict):
-            if "matches" in item and isinstance(item["matches"], list):
-                mapping = {}
-                for m in item["matches"]:
-                    t = m.get("target_column")
-                    s = m.get("source_column")
-                    if t is not None and s is not None:
-                        mapping[t] = s
-                return mapping
-            # assume plain mapping already
-            return {k: v for k, v in item.items() if v is not None}
-
-        # If item is a list (combined file with multiple datasets)
-        if isinstance(item, list):
-            # Recurse for each element and flatten
-            return None  # handled at outer level
-
-        raise ValueError(f"Unsupported ground truth element type: {type(item)}")
-
-    # list input (could be list of dicts or file paths)
-    if isinstance(ground_truth_data, list):
-        out: List[Dict[str, str]] = []
-        for elem in ground_truth_data:
-            if isinstance(elem, list):
-                # a nested list => expand
-                inner = format_ground_truth_for_mcnemar(elem)
-                out.extend(inner)
-            else:
-                converted = _convert_one(elem)
-                if converted is None:
-                    # elem was a list inside; already expanded
-                    continue
-                out.append(converted)
-        return out
-
-    # single string path or single dict
-    if isinstance(ground_truth_data, str):
-        with open(ground_truth_data, "r") as f:
-            data = json.load(f)
-        if isinstance(data, list):
-            return format_ground_truth_for_mcnemar(data)
-        return [ _convert_one(data) ]
-
-    if isinstance(ground_truth_data, dict):
-        return [{k: v for k, v in ground_truth_data.items() if v is not None}]
-
-    raise ValueError(f"Unsupported ground_truth type: {type(ground_truth_data)}")
-
-
-
-
-def mcnemar_analysis(detailed_matches_all_datasets, expected_dir: str, ground_truth=None):
-    """
-    CORRECTED McNemar's Test with proper alignment and flexible ground truth input.
-    """
-
-    # ---- Ground truth intake ----
-    if ground_truth is not None:
-        formatted_ground_truth = format_ground_truth_for_mcnemar(ground_truth)
-    elif expected_dir is not None:
-        gt_from_dir = load_expected_ground_truth(expected_dir)
-        formatted_ground_truth = format_ground_truth_for_mcnemar(gt_from_dir)
+    if n10 > n01:
+        winner = "A"   # A has more unique corrects
+    elif n01 > n10:
+        winner = "B"   # B has more unique corrects
     else:
-        print("⚠️ No ground truth provided (neither 'ground_truth' nor 'expected_dir').")
-        print("💡 McNemar's test requires ground truth to determine correctness.")
-        print("🔍 Skipping McNemar's analysis...")
-        return None
+        winner = "tie"
 
-    # Use dict with (dataset_idx, column) as keys
-    data = {approach_name: {} for approach, approach_name in APPROACHES}
-    
-    for dataset_idx, (dataset_matches, dataset_gt) in enumerate(
-        zip(detailed_matches_all_datasets, formatted_ground_truth)
-    ):
-        print(f"  📊 Dataset {dataset_idx + 1}/{len(detailed_matches_all_datasets)}")
-        
-        if dataset_gt is None:
-            print(f"     ⚠️  No ground truth available (cross-domain dataset) - skipping")
+    return {
+        "chi2": chi2,
+        "p_value": p,
+        "winner": winner,
+    }
+
+
+def invert_predictions_to_target_to_source(predictions):
+    """
+    predictions: {source_col: [pred_target_col or None, ...]}
+    Returns: {target_col: source_col}
+    """
+    inv = {}
+    for src_col, values in predictions.items():
+        if not values:
             continue
-        
-        valid_mappings = sum(1 for v in dataset_gt.values() if v is not None)
-        print(f"     Ground truth has {len(dataset_gt)} mappings ({valid_mappings} valid)")
-        
-        for approach, approach_name in APPROACHES:
-            if approach_name not in dataset_matches:
-                print(f"    ⚠️  {approach_name}: Not available in dataset {dataset_idx + 1}")
-                continue
-            
-            predictions = dataset_matches[approach_name]
-            if not predictions:
-                print(f"    ⚠️  {approach_name}: No predictions")
-                continue
-                
-            correct_count = 0
-            total_count = 0
-            
-            for target_col, (predicted_col, confidence, explanation) in predictions.items():
-                #  CHECK: Is this column in ground truth?
-                if target_col in dataset_gt:
-                    correct_col = dataset_gt[target_col]
-                    
-                    # CRITICAL: Skip if ground truth is None (no valid match)
-                    if correct_col is None:
-                        continue
-                    
-                    is_correct = 1 if predicted_col == correct_col else 0
-                    
-                    # KEY FIX: Store with (dataset, column) as key
-                    key = (dataset_idx, target_col)
-                    data[approach_name][key] = is_correct
-                    
-                    if is_correct:
-                        correct_count += 1
-                    total_count += 1
-            
-            # if total_count > 0:
-            #     print(f"    ✓ {method}: {correct_count}/{total_count} correct")
-            # else:
-            #     print(f"    ⚠️  {method}: 0 predictions with valid ground truth")
-    
-    for approach, approach_name in APPROACHES:
-        total = len(data[approach_name])
-        correct = sum(data[approach_name].values())
-        if total > 0:
-            accuracy = (correct / total) * 100
-            print(f"  {approach_name}: {correct}/{total} correct ({accuracy:.1f}%)")
-        else:
-            print(f"  {approach_name}: No data")
-    print()
-    
-    
-    results = []
-    
-    for i, (approachA, approachA_name) in enumerate(APPROACHES):
-        for j, (approachB, approachB_name) in enumerate(APPROACHES):
-            if i >= j:
-                continue
-            
-            # KEY FIX: Only compare where BOTH methods have predictions
-            common_keys = set(data[approachA_name].keys()) & set(data[approachB_name].keys())
-            
-            if len(common_keys) == 0:
-                print(f"⚠️  Skipping {approachA_name} vs {approachB_name}: No overlapping predictions")
-                continue
-            
-            # Build contingency table from ALIGNED predictions only
-            b = 0  # A correct, B wrong
-            c = 0  # A wrong, B correct
-            both_correct = 0
-            both_wrong = 0
-            
-            for key in common_keys:
-                A_val = data[approachA_name][key]
-                B_val = data[approachB_name][key]
+        tgt_col = values[0]
+        if tgt_col is not None:
+            inv[tgt_col] = src_col
+    return inv
 
-                if A_val == 1 and B_val == 1:
-                    both_correct += 1
-                elif A_val == 0 and B_val == 0:
-                    both_wrong += 1
-                elif A_val == 1 and B_val == 0:
-                    b += 1
-                elif A_val == 0 and B_val == 1:
-                    c += 1
-            
-            # McNemar statistic
-            if (b + c) == 0:
-                statistic = 0
-                p_value = 1.0
-            else:
-                statistic = ((abs(b - c) - 1) ** 2) / (b + c)
-                p_value = 1 - chi2.cdf(statistic, df=1)
-            
-            # Determine winner
-            if b > c:
-                winner = approachA_name
-                advantage = b - c
-            elif c > b:
-                winner = approachB_name
-                advantage = c - b
-            else:
-                winner = "Tie"
-                advantage = 0
-            
-            results.append({
-                'Comparison': f"{approachA_name}\nvs\n{approachB_name}",
-                'χ² Statistic': f"{statistic:.4f}",
-                'p-value': f"{p_value:.4f}",
-                'Significant\n(α=0.05)': "✓ YES" if p_value < 0.05 else "✗ NO",
-                'Winner': winner if winner != "Tie" else "---",
-                'Advantage': f"+{advantage}" if advantage > 0 else "0",
-                'Both Correct': both_correct,
-                'Both Wrong': both_wrong,
-                'A Only': b,
-                'B Only': c,
-                'n (overlapping)': len(common_keys)
+
+def correctness_vector(predictions, expected_mapping):
+    """
+    expected_mapping: {target_col: true_source_col}
+    predictions: raw predictions dict for one approach/table.
+    Returns: {target_col: 0/1}
+    """
+    if predictions is None:
+        return {t: 0 for t in expected_mapping.keys()}
+
+    pred_inv = invert_predictions_to_target_to_source(predictions)
+    correct = {}
+    for t, gt_src in expected_mapping.items():
+        pred_src = pred_inv.get(t)
+        correct[t] = int(pred_src == gt_src)
+    return correct
+
+
+def latex_escape(s: str) -> str:
+    if s is None:
+        return ""
+    s = str(s)
+    return (
+        s.replace("\\", "\\textbackslash{}")
+         .replace("_", "\\_")
+         .replace("%", "\\%")
+         .replace("&", "\\&")
+    )
+
+def generate_latex_dataset(aggregated_results):
+    """
+    aggregated_results: list of dicts with keys:
+      table, method1, method2, n01, n10, n, chi2, p_value, winner, significant
+    """
+    aggregated_results = sorted(
+        aggregated_results,
+        key=lambda r: (r["method1"], r["method2"], r["dataset"])
+    )
+
+    lines = [
+        "\\begin{table}[t]",
+        "\\centering",
+        "\\caption{McNemar's test per table between Edit Distance and Random (column-wise correctness).}",
+        "\\label{tab:mcnemar-per-table}",
+        "\\small",
+        "\\begin{tabular}{l l c c c c c c}",
+        "\\toprule",
+        "Table & Method Pair & $n_{10}$ & $n_{01}$ & $n$ & $\\chi^2$ & p-value & Winner \\\\",
+        "\\midrule",
+    ]
+
+    for r in aggregated_results:
+        table_name = latex_escape(r["dataset"])
+        pair = f"{r['method1']}~vs~{r['method2']}"
+        winner = r["winner"]
+        lines.append(
+            f"{table_name} & {pair} & "
+            f"{r['n10']} & {r['n01']} & {r['n']} & "
+            f"{r['chi2']:.3f} & {r['p_value']:.4f} & {winner} \\\\"
+        )
+
+    lines.extend([
+        "\\bottomrule",
+        "\\end{tabular}",
+        "\\end{table}",
+    ])
+    return "\n".join(lines)
+
+
+def generate_latex_table(aggregated_results):
+
+    print(aggregated_results)
+
+    """
+    aggregated_results: list of dicts with keys:
+      table, method1, method2, n01, n10, n, chi2, p_value, winner, significant
+    """
+    aggregated_results = sorted(
+        aggregated_results,
+        key=lambda r: (r["method1"], r["method2"], r["table"])
+    )
+
+    lines = [
+        "\\begin{table}[t]",
+        "\\centering",
+        "\\caption{McNemar's test per table between Edit Distance and Random (column-wise correctness).}",
+        "\\label{tab:mcnemar-per-table}",
+        "\\small",
+        "\\begin{tabular}{l l c c c c c c}",
+        "\\toprule",
+        "Table & Method Pair & $n_{10}$ & $n_{01}$ & $n$ & $\\chi^2$ & p-value & Winner \\\\",
+        "\\midrule",
+    ]
+
+    for r in aggregated_results:
+        table_name = latex_escape(r["table"])
+        pair = f"{r['method1']}~vs~{r['method2']}"
+        winner = r["winner"]
+        lines.append(
+            f"{table_name} & {pair} & "
+            f"{r['n10']} & {r['n01']} & {r['n']} & "
+            f"{r['chi2']:.3f} & {r['p_value']:.4f} & {winner} \\\\"
+        )
+
+    lines.extend([
+        "\\bottomrule",
+        "\\end{tabular}",
+        "\\end{table}",
+    ])
+    return "\n".join(lines)
+
+
+
+
+def main():
+    expected_paths = sorted(
+        glob.glob("**/*.json", root_dir="./assets/expected", recursive=True)
+    )
+
+    # First, collect raw per-file counts
+    per_file = []  # each: dict(table, method1, method2, n01, n10)
+
+    for expected_rel in tqdm(expected_paths, desc="Tables"):
+        expected_full = os.path.join("./assets/expected", expected_rel)
+
+        with open(expected_full) as f:
+            expectation = json.load(f)
+
+        expected_mappings = expectation.get("mappings", [])
+        expected_mapping = {
+            m["target_column"]: m["source_column"]
+            for m in expected_mappings
+            if m.get("target_column") is not None
+            and m.get("source_column") is not None
+        }
+
+        if not expected_mapping:
+            continue
+
+        table_corr = {}
+        for approach in APPROACH_NAMES:
+            predicted_full = os.path.join("./assets/predicted", approach, expected_rel)
+            if not os.path.exists(predicted_full):
+                continue
+            with open(predicted_full) as f:
+                predictions = json.load(f)
+            table_corr[approach] = correctness_vector(predictions, expected_mapping)
+
+        for A, B in combinations(APPROACH_NAMES, 2):
+            if A not in table_corr or B not in table_corr:
+                continue
+            n01, n10 = mcnemar_counts(table_corr[A], table_corr[B])
+            if n01 + n10 == 0:
+                continue
+
+            per_file.append({
+                "table": expectation.get("target_table", expected_rel),
+                "method1": A,
+                "method2": B,
+                "n01": n01,
+                "n10": n10,
             })
-    
+
+    # Now aggregate by (table, method1, method2)
+    agg = defaultdict(lambda: {"n01": 0, "n10": 0})
+
+    for r in per_file:
+        key = (r["table"], r["method1"], r["method2"])
+        print(key)
+        agg[key]["n01"] += r["n01"]
+        agg[key]["n10"] += r["n10"]
+
+    # print("###### Par table", agg)
+
+    aggregated_results = []
+    for (table, m1, m2), cnts in agg.items():
+        n01 = cnts["n01"]
+        n10 = cnts["n10"]
+        n = n01 + n10
+        if n == 0:
+            continue
+
+        stats = mcnemar_from_counts(n01, n10)
+
+        # Map winner label from "A"/"B"/"tie" to method names
+        if stats["winner"] == "A":
+            winner_label = m1
+        elif stats["winner"] == "B":
+            winner_label = m2
+        else:
+            winner_label = "Tie"
+
+        aggregated_results.append({
+            "table": table,
+            "method1": m1,
+            "method2": m2,
+            "n01": n01,
+            "n10": n10,
+            "n": n,
+            "chi2": stats["chi2"],
+            "p_value": stats["p_value"],
+            "significant": stats["p_value"],
+            "winner": winner_label,
+        })
+
+
+    # ====================== Per-dataset aggregation ======================
+
+    agg_dataset = defaultdict(lambda: {"n01": 0, "n10": 0})
+
+    for r in per_file:
+        table_key = r["table"]  # e.g. "valentine/ChEMBL/Joinable/assays_both_50_1_ac1_ev"
+        parts = table_key.split("/")
+
+        # dataset is the segment right after "valentine"
+        if len(parts) > 1 and parts[0] == "valentine":
+            dataset = parts[1]
+        else:
+            # fallback if format is slightly different
+            dataset = parts[0]
+
+        key = (dataset, r["method1"], r["method2"])
+        agg_dataset[key]["n01"] += r["n01"]
+        agg_dataset[key]["n10"] += r["n10"]
+
+    aggregated_results_dataset = []
+    for (dataset, m1, m2), cnts in agg_dataset.items():
+        n01 = cnts["n01"]
+        n10 = cnts["n10"]
+        n = n01 + n10
+        if n == 0:
+            continue
+
+        stats = mcnemar_from_counts(n01, n10)
+
+        if stats["winner"] == "A":
+            winner_label = m1
+        elif stats["winner"] == "B":
+            winner_label = m2
+        else:
+            winner_label = "Tie"
+
+        aggregated_results_dataset.append({
+            "scope": "dataset",
+            "dataset": dataset,
+            "method1": m1,
+            "method2": m2,
+            "n01": n01,
+            "n10": n10,
+            "n": n,
+            "chi2": stats["chi2"],
+            "p_value": stats["p_value"],
+            "significant": stats["p_value"],
+            "winner": winner_label,
+        })
+
+    for r in sorted(aggregated_results_dataset, key=lambda x: (x["method1"], x["method2"], x["dataset"])):
+        sig_marker = " ***" if r["significant"] else ""
+        print(
+            f"[{r['dataset']}] {r['method1']} vs {r['method2']}: "
+            f"n10={r['n10']}, n01={r['n01']}, n={r['n']}, "
+            f"chi2={r['chi2']:.3f}, p={r['p_value']:.4f}, "
+            f"winner={r['winner']}{sig_marker}"
+        )
+
+    latex = generate_latex_dataset(aggregated_results_dataset)
+    os.makedirs("reports", exist_ok=True)
+    with open("reports/mcnemar_confidence_dataset.tex", "w") as f:
+        f.write(latex)
+
 
     
-    sig_count = sum(1 for r in results if r['Significant\n(α=0.05)'] == "✓ YES")
-    total = len(results)
-    
-    
-    return results
 
+
+    # Console summary
+    for r in sorted(aggregated_results, key=lambda x: (x["method1"], x["method2"], x["table"])):
+        sig_marker = " ***" if r["significant"] else ""
+        # print(
+        #     f"[{r['table']}] {r['method1']} vs {r['method2']}: "
+        #     f"n10={r['n10']}, n01={r['n01']}, n={r['n']}, "
+        #     f"chi2={r['chi2']:.3f}, p={r['p_value']:.4f}, "
+        #     f"winner={r['winner']}{sig_marker}"
+        # )
+
+    # LaTeX table from aggregated results
+    latex = generate_latex_table(aggregated_results)
+    print("=" * 70)
+    print("LATEX TABLE")
+    print("=" * 70)
+    # print(latex)
+
+    os.makedirs("reports", exist_ok=True)
+    with open("reports/mcnemar_confidence_table.tex", "w") as f:
+        f.write(latex)
+
+    sig_count = sum(1 for r in aggregated_results if r["significant"])
+    print(f"\nSummary: {sig_count}/{len(aggregated_results)} aggregated comparisons significant (p < 0.05)")
+
+
+if __name__ == "__main__":
+    main()
