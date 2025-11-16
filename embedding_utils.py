@@ -1,5 +1,5 @@
 import math
-from typing import Dict, Tuple, List, Literal, Union
+from typing import Dict, Optional, Tuple, List, Literal, Union
 
 from sklearn.metrics.pairwise import cosine_similarity
 from scipy.optimize import linear_sum_assignment
@@ -8,7 +8,7 @@ import numpy as np
 from get_embedding import get_embeddings_batch
 from json_schema import ObjectSchema
 
-def enrich_column_text(column_name: str, schema_properties: dict = None) -> str:
+def enrich_column_text(column_name: str, schema_properties: dict) -> str:
     """
     Enrich column name with additional context for better embeddings.
     """
@@ -26,9 +26,9 @@ def enrich_column_text(column_name: str, schema_properties: dict = None) -> str:
         return enriched
     return column_name
 
-def embedding_column_mapping(source_schema: ObjectSchema, target_schema: ObjectSchema,
+async def embedding_column_mapping(source_schema: ObjectSchema, target_schema: ObjectSchema,
                            model: str, threshold: float,
-                           method: Union[Literal["hungarian", "greedy"]]) -> Dict[str, Tuple[str, float, str]]:
+                           method: Union[Literal["hungarian"], Literal["greedy"]]) -> Dict[str, Tuple[Optional[str], float, Optional[str]]]:
     """
     Maps target columns to source columns using cosine similarity on embeddings.
     
@@ -40,37 +40,35 @@ def embedding_column_mapping(source_schema: ObjectSchema, target_schema: ObjectS
     
     Returns: dict of {target_column: (matched_source_column, confidence, reasoning)}
     """
+    assert source_schema.properties is not None
+    assert target_schema.properties is not None
     
     # Extract column names from schemas
     source_columns = list(source_schema.properties.keys())
     target_columns = list(target_schema.properties.keys())
 
-    print(f"🎯 Starting embedding-based column mapping")
-    print(f"   Source columns: {len(source_columns)}")
-    print(f"   Target columns: {len(target_columns)}")
-    print(f"   Threshold: {threshold}")
-    print(f"   Method: {method}")
-    
     # Enrich column texts for better embeddings
     enriched_source = [enrich_column_text(col, source_schema.properties) for col in source_columns]
     enriched_target = [enrich_column_text(col, target_schema.properties) for col in target_columns]
-    
+
     # Get all embeddings in batch (much faster!)
     all_texts = enriched_source + enriched_target
-    all_embeddings = get_embeddings_batch(all_texts, model)
-    
+    all_embeddings = await get_embeddings_batch(all_texts, model)
+    all_embeddings = {text: all_embeddings[i] for i, text in enumerate(all_texts)}
+
     # Split embeddings back
     source_embeddings = {source_columns[i]: all_embeddings[enriched_source[i]] 
                         for i in range(len(source_columns))}
     target_embeddings = {target_columns[i]: all_embeddings[enriched_target[i]] 
                         for i in range(len(target_columns))}
-    
+
     # Create similarity matrix
     similarity_matrix = np.zeros((len(target_columns), len(source_columns)))
-    
-    for i, tgt_col in enumerate(target_columns):
-        for j, src_col in enumerate(source_columns):
-            similarity_matrix[i, j] = cosine_similarity([target_embeddings[tgt_col]], [source_embeddings[src_col]])[0][0]
+
+    similarity_matrix = cosine_similarity(
+        np.array([target_embeddings[tgt_col] for tgt_col in target_columns]),
+        np.array([source_embeddings[src_col] for src_col in source_columns])
+    )
 
     if method == "hungarian" and len(source_columns) > 1 and len(target_columns) > 1:
         return _hungarian_mapping(source_columns, target_columns, similarity_matrix, threshold)
@@ -78,17 +76,19 @@ def embedding_column_mapping(source_schema: ObjectSchema, target_schema: ObjectS
         return _greedy_mapping(source_columns, target_columns, similarity_matrix, threshold)
 
 def _hungarian_mapping(source_columns: List[str], target_columns: List[str], similarity_matrix: np.ndarray,
-                       threshold: float) -> Dict[str, Tuple[str, float, str]]:
+                       threshold: float) -> Dict[str, Tuple[Optional[str], float, Optional[str]]]:
     """
     Use Hungarian algorithm for optimal 1:1 assignment.
     """
-    print("🧮 Using optimal assignment (Hungarian algorithm)")
-    
     # Hungarian algorithm (minimizes cost, so we use negative similarity)
-    row_indices, col_indices = linear_sum_assignment(-similarity_matrix)
+    row_indices, col_indices = linear_sum_assignment(similarity_matrix, maximize=True)
     
-    mapping = {}
-    for i, j in zip(row_indices, col_indices):
+    mapping: dict[str, tuple[Optional[str], float, Optional[str]]] = {
+        target_column: (None, 0.0, None)
+        for target_column in target_columns
+    }
+
+    for i, j in zip(row_indices, col_indices, strict=True):
         tgt_col = target_columns[i]
         src_col = source_columns[j]
         similarity = similarity_matrix[i, j]
@@ -103,12 +103,10 @@ def _hungarian_mapping(source_columns: List[str], target_columns: List[str], sim
     return mapping
 
 def _greedy_mapping(source_columns: List[str], target_columns: List[str], similarity_matrix: np.ndarray,
-                    threshold: float) -> Dict[str, Tuple[str, float, str]]:
+                    threshold: float) -> Dict[str, Tuple[Optional[str], float, Optional[str]]]:
     """
     Greedy mapping (original algorithm but with improvements).
     """
-    print("🎯 Using greedy assignment")
-    
     mapping = {}
     
     for i, tgt_col in enumerate(target_columns):

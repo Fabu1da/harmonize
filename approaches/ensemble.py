@@ -1,25 +1,37 @@
+import json
 from typing import Optional
 
 from .base import BaseApproach
 from json_schema import ObjectSchema
 
 class BaseEnsembleApproach(BaseApproach):
-    components: list[BaseApproach]
+    components: list[str]
 
-    def __init__(self, components: list[BaseApproach]):
+    def __init__(self, components: list[str]):
         self.components = components
 
     async def predict(self, source_schema: ObjectSchema, target_schema: ObjectSchema, **kwargs) -> dict[str, tuple[Optional[str], float, Optional[str]]]:
-        predictions = []
+        assert target_schema.properties is not None
+
+        expected_name: str = kwargs["expected_name"]
+
+        predictions: list[dict[str, tuple[Optional[str], float, Optional[str]]]] = []
+
         for component in self.components:
-            pred = await component.predict(source_schema, target_schema, **kwargs)
+            predicted_path = f"./assets/predicted/{component}/{expected_name}.json"
+
+            with open(predicted_path) as f:
+                pred = json.load(f)
+
             predictions.append(pred)
         
         combined = {}
         target_columns = list(target_schema.properties.keys())
+
         for target_col in target_columns:
-            candidates = [pred.get(target_col, (None, 0.0, "No prediction")) for pred in predictions]
+            candidates = [pred[target_col] for pred in predictions]
             combined[target_col] = self.aggregate(candidates)
+
         return combined
 
     def aggregate(self, candidates: list[tuple[Optional[str], float, Optional[str]]]) -> tuple[Optional[str], float, Optional[str]]:
@@ -29,7 +41,7 @@ class WeightedEnsembleApproach(BaseEnsembleApproach):
     weights: list[float]
     use_confidence: bool
 
-    def __init__(self, components: list[BaseApproach], weights: list[float], use_confidence: bool):
+    def __init__(self, components: list[str], weights: list[float], use_confidence: bool):
         super().__init__(components)
         self.weights = weights
         self.use_confidence = use_confidence
@@ -45,12 +57,13 @@ class WeightedEnsembleApproach(BaseEnsembleApproach):
             else:
                 vote_count[source_col] += self.weights[i]
         best_match = max(vote_count.items(), key=lambda x: x[1])[0]
-        confidence = vote_count[best_match] / sum(self.weights)
+        vote_sum = sum(vote_count.values())
+        confidence = vote_count[best_match] / vote_sum if vote_sum > 0 else 0
         reasons = [reason for src, conf, reason in candidates if src == best_match and reason]
         combined_reason = "; ".join(reasons) if reasons else None
         return best_match, confidence, combined_reason
 
 class MajorityVoteEnsembleApproach(WeightedEnsembleApproach):
-    def __init__(self, components: list[BaseApproach]):
+    def __init__(self, components: list[str]):
         weights = [1.0] * len(components)
         super().__init__(components, weights, use_confidence=False)

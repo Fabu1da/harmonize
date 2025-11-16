@@ -5,8 +5,10 @@ import numpy as np
 from json_schema import ObjectSchema, Schema
 
 # 🔍 **Step 1: Infer Schema from Source Dataset**
-async def infer_schema(dataset: pd.DataFrame) -> ObjectSchema:
+def infer_schema(dataset: pd.DataFrame) -> ObjectSchema:
     schema = ObjectSchema()
+    assert schema.properties is not None
+    assert schema.required is not None
 
     for column in dataset.columns:
         non_null_values = dataset[column].dropna()  # Remove null values
@@ -22,11 +24,11 @@ async def infer_schema(dataset: pd.DataFrame) -> ObjectSchema:
             np.str_: "string",
             str: "string",
         }
-        inferred_type = type_mapping.get(inferred_type, inferred_type)
+        inferred_type_str = type_mapping.get(inferred_type, "string")
         required = bool(dataset[column].isnull().sum() > 0),
 
         schema.properties[column] = Schema(
-            type=inferred_type,
+            type=inferred_type_str,
             examples=random.sample(non_null_values.tolist(), min(3, len(non_null_values))),
         )
 
