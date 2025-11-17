@@ -28,6 +28,8 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+cache/
+enhanced_benchmark_results/
 
 # Virtual environment
 .venv/
@@ -126,6 +128,13 @@ Jupyter_env
 *.iwa
 dump
 
-Monitoring_data/
-cache_storage/embedding_cache.pkl
 todo/
+*.md
+todo/
+*.tex
+*.zip
+paper/
+*.pkl
+COMA/
+cache_storage/embedding_cache.pkl
+Monitoring_data/
