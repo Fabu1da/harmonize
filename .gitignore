@@ -129,7 +129,6 @@ Jupyter_env
 dump
 
 todo/
-*.md
 todo/
 *.tex
 *.zip
